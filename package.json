@@ -1,0 +1,24 @@
+{
+  "name": "bazaar",
+  "version": "1.0.0",
+  "description": "OmniBazaar is a decentralized marketplace for physical goods, NFTs, and other digital goods. It is built on blockchain technology and uses smart contracts for secure transactions.",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs",
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/OmniBazaar/Bazaar.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/OmniBazaar/Bazaar/issues"
+  },
+  "homepage": "https://github.com/OmniBazaar/Bazaar#readme"
+}
