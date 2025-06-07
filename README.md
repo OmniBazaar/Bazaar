@@ -1,9 +1,11 @@
 # OmniBazaar Marketplace
 
 ## Overview
+
 OmniBazaar is a decentralized marketplace for physical goods, NFTs, and other digital goods. It is built on blockchain technology and uses smart contracts for secure transactions.
 
 ## Features
+
 - Decentralized marketplace for physical and digital goods
 - NFT-based listing system
 - IPFS-based storage
@@ -15,6 +17,7 @@ OmniBazaar is a decentralized marketplace for physical goods, NFTs, and other di
 ## Development Setup
 
 ### Prerequisites
+
 - Node.js >= 16
 - npm >= 8
 - TypeScript
@@ -22,40 +25,48 @@ OmniBazaar is a decentralized marketplace for physical goods, NFTs, and other di
 - MetaMask or other Web3 wallet
 
 ### Installation
+
 1. Clone the repository:
+
 ```bash
 git clone https://github.com/your-org/OmniBazaar.git
 cd OmniBazaar/Bazaar
 ```
 
-2. Install dependencies:
+1. Install dependencies:
+
 ```bash
 npm install
 ```
 
-3. Set up environment variables:
+1. Set up environment variables:
+
 ```bash
 cp .env.example .env
 # Edit .env with your configuration
 ```
 
-4. Start development server:
+1. Start development server:
+
 ```bash
 npm run dev
 ```
 
 ### Building
+
 ```bash
 npm run build
 ```
 
 ### Testing
+
 ```bash
 npm test
 ```
 
 ## Project Structure
-```
+
+```bash
 Bazaar/
 ├── src/              # Source code
 ├── contracts/        # Smart contracts
@@ -65,7 +76,9 @@ Bazaar/
 ```
 
 ## Contributing
+
 Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct and the process for submitting pull requests.
 
 ## License
+
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
