@@ -1,84 +1,71 @@
 # OmniBazaar Marketplace
 
-## Overview
+The OmniBazaar marketplace module provides the user interface and business logic for the decentralized marketplace platform.
 
-OmniBazaar is a decentralized marketplace for physical goods, NFTs, and other digital goods. It is built on blockchain technology and uses smart contracts for secure transactions.
+## Directory Structure
 
-## Features
-
-- Decentralized marketplace for physical and digital goods
-- NFT-based listing system
-- IPFS-based storage
-- Privacy features from COTI V2
-- Reputation system
-- Arbitration system
-- Cross-chain compatibility
-
-## Development Setup
-
-### Prerequisites
-
-- Node.js >= 16
-- npm >= 8
-- TypeScript
-- IPFS
-- MetaMask or other Web3 wallet
-
-### Installation
-
-1. Clone the repository:
-
-```bash
-git clone https://github.com/your-org/OmniBazaar.git
-cd OmniBazaar/Bazaar
 ```
+src/
+├── components/
+│   ├── listings/     # Listing-related components
+│   ├── nft/         # NFT display and management
+│   └── marketplace/ # Core marketplace UI
+├── hooks/           # Custom React hooks
+└── types/           # TypeScript type definitions
+```
+
+## Components
+
+### Listings
+- `ListingSearch.tsx`: Search and filter interface for marketplace listings
+- `ListingResults.tsx`: Grid display of search results
+- `ListingCard.tsx`: Individual listing display component
+- `ListingFilters.tsx`: Advanced filtering options
+
+### NFT
+- `NFTGallery.tsx`: Display NFT collections
+- `NFTDisplay.tsx`: Individual NFT view
+- `NFTTransfer.tsx`: NFT transfer interface
+
+### Marketplace
+- `MarketplaceHeader.tsx`: Main marketplace navigation
+- `MarketplaceLayout.tsx`: Core layout structure
+
+## Hooks
+
+- `useListings.ts`: Manage listing data and search
+- `useNFTs.ts`: Handle NFT operations
+- `useMarketplace.ts`: Core marketplace functionality
+
+## Types
+
+- `listing.ts`: Listing-related type definitions
+- `nft.ts`: NFT-related type definitions
+
+## Integration
+
+This module integrates with:
+- Storage module for IPFS operations
+- Wallet module for transactions
+- Smart contracts for on-chain operations
+
+## Development
 
 1. Install dependencies:
+   ```bash
+   npm install
+   ```
 
-```bash
-npm install
-```
+2. Start development server:
+   ```bash
+   npm run dev
+   ```
 
-1. Set up environment variables:
-
-```bash
-cp .env.example .env
-# Edit .env with your configuration
-```
-
-1. Start development server:
-
-```bash
-npm run dev
-```
-
-### Building
-
-```bash
-npm run build
-```
-
-### Testing
-
-```bash
-npm test
-```
-
-## Project Structure
-
-```bash
-Bazaar/
-├── src/              # Source code
-├── contracts/        # Smart contracts
-├── tests/           # Test files
-├── docs/            # Documentation
-└── scripts/         # Build and deployment scripts
-```
+3. Run tests:
+   ```bash
+   npm test
+   ```
 
 ## Contributing
 
-Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct and the process for submitting pull requests.
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+Please refer to the project's RULES.md for development guidelines and standards.
