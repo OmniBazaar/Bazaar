@@ -1,0 +1,3 @@
+export const LISTING_NFT_ADDRESS = process.env.REACT_APP_LISTING_NFT_ADDRESS || '';
+export const PAYMENT_TOKEN_ADDRESS = process.env.REACT_APP_PAYMENT_TOKEN_ADDRESS || '';
+export const FEE_COLLECTOR_ADDRESS = process.env.REACT_APP_FEE_COLLECTOR_ADDRESS || ''; 
