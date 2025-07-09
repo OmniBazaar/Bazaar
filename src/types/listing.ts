@@ -72,14 +72,39 @@ export interface ListingNode {
 }
 
 export interface ListingMetadata {
-    name: string;
+    cid?: string;
+    title: string;
     description: string;
-    images: string[]; // IPFS hashes
-    attributes: {
-        condition: string;
+    type: 'product' | 'service';
+    price: number;
+    currency: string;
+    category: string;
+    tags: string[];
+    images: string[];
+    location: {
+        country: string;
+        city?: string;
+        state?: string;
+        coordinates?: {
+            latitude: number;
+            longitude: number;
+        };
+    };
+    seller: {
+        id: string;
+        name: string;
+        avatar: string;
+        rating: number;
+        contactInfo: {
+            email: string;
+            phone?: string;
+        };
+    };
+    productDetails?: {
+        condition: 'new' | 'used' | 'refurbished';
         brand?: string;
         model?: string;
-        specifications?: Record<string, string>;
+        specifications?: string;
         dimensions?: {
             length?: number;
             width?: number;
@@ -91,33 +116,26 @@ export interface ListingMetadata {
             unit: string;
         };
     };
-    seller: {
-        address: string;
-        name?: string;
-        reputation?: number;
+    serviceDetails?: {
+        serviceType: string;
+        duration?: string;
+        availability?: {
+            startDate: string;
+            endDate: string;
+        };
+        requirements?: string[];
     };
-    price: {
-        amount: string;
-        currency: string;
+    shipping?: {
+        method: string;
+        cost: number;
+        estimatedDelivery: string;
+        restrictions?: string[];
     };
-    quantity: number;
-    category: string;
-    tags: string[];
-    location: {
-        country: string;
-        city?: string;
-        state?: string;
-    };
-    shipping: {
-        methods: {
-            name: string;
-            price: string;
-            currency: string;
-            estimatedDays: number;
-        }[];
-        freeShipping: boolean;
-    };
-    blockchain: {
+    quantity?: number;
+    status: 'active' | 'sold' | 'inactive' | 'draft';
+    createdAt?: string;
+    updatedAt?: string;
+    blockchain?: {
         tokenId: string;
         contractAddress: string;
     };

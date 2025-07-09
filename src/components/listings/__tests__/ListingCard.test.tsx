@@ -2,6 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { ListingCard } from '../ListingCard';
 import { ListingMetadata } from '../../../types/listing';
+import { ThemeProvider } from '../../common/ThemeProvider';
 
 describe('ListingCard', () => {
     const mockListing: ListingMetadata = {
@@ -30,16 +31,24 @@ describe('ListingCard', () => {
         status: 'active'
     };
 
+    const renderWithTheme = (component: React.ReactElement) => {
+        return render(
+            <ThemeProvider>
+                {component}
+            </ThemeProvider>
+        );
+    };
+
     it('renders listing information', () => {
-        render(<ListingCard listing={mockListing} />);
+        renderWithTheme(<ListingCard listing={mockListing} />);
 
         expect(screen.getByText(mockListing.title)).toBeInTheDocument();
         expect(screen.getByText(mockListing.description)).toBeInTheDocument();
-        expect(screen.getByText(`$${mockListing.price}`)).toBeInTheDocument();
+        expect(screen.getByText(`${mockListing.price} ${mockListing.currency}`)).toBeInTheDocument();
     });
 
     it('renders listing information correctly', () => {
-        render(<ListingCard listing={mockListing} />);
+        renderWithTheme(<ListingCard listing={mockListing} />);
 
         expect(screen.getByText(mockListing.title)).toBeInTheDocument();
         expect(screen.getByText(`${mockListing.price} ${mockListing.currency}`)).toBeInTheDocument();
@@ -52,7 +61,7 @@ describe('ListingCard', () => {
 
     it('calls onClick handler when clicked', () => {
         const handleClick = jest.fn();
-        render(<ListingCard listing={mockListing} onClick={handleClick} />);
+        renderWithTheme(<ListingCard listing={mockListing} onClick={handleClick} />);
 
         fireEvent.click(screen.getByRole('article'));
         expect(handleClick).toHaveBeenCalledWith(mockListing);
@@ -71,7 +80,7 @@ describe('ListingCard', () => {
             },
         };
 
-        render(<ListingCard listing={serviceListing} />);
+        renderWithTheme(<ListingCard listing={serviceListing} />);
         expect(screen.getByText(`Service Type: ${serviceListing.serviceDetails?.serviceType}`)).toBeInTheDocument();
     });
 }); 

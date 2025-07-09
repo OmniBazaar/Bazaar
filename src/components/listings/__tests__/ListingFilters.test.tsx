@@ -2,6 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { ListingFilters } from '../ListingFilters';
 import { SearchFilters } from '../../../types/listing';
+import { ThemeProvider } from '../../common/ThemeProvider';
 
 const mockFilters: SearchFilters = {
     type: 'product',
@@ -12,11 +13,19 @@ const mockFilters: SearchFilters = {
 };
 
 describe('ListingFilters', () => {
+    const renderWithTheme = (component: React.ReactElement) => {
+        return render(
+            <ThemeProvider>
+                {component}
+            </ThemeProvider>
+        );
+    };
+
     it('renders all filter inputs', () => {
         const handleFilterChange = jest.fn();
         const handleReset = jest.fn();
 
-        render(
+        renderWithTheme(
             <ListingFilters
                 filters={mockFilters}
                 onFilterChange={handleFilterChange}
@@ -36,7 +45,7 @@ describe('ListingFilters', () => {
         const handleFilterChange = jest.fn();
         const handleReset = jest.fn();
 
-        render(
+        renderWithTheme(
             <ListingFilters
                 filters={mockFilters}
                 onFilterChange={handleFilterChange}
@@ -58,7 +67,7 @@ describe('ListingFilters', () => {
         const handleFilterChange = jest.fn();
         const handleReset = jest.fn();
 
-        render(
+        renderWithTheme(
             <ListingFilters
                 filters={mockFilters}
                 onFilterChange={handleFilterChange}
@@ -74,7 +83,7 @@ describe('ListingFilters', () => {
         const handleFilterChange = jest.fn();
         const handleReset = jest.fn();
 
-        render(
+        renderWithTheme(
             <ListingFilters
                 filters={mockFilters}
                 onFilterChange={handleFilterChange}
@@ -99,7 +108,7 @@ describe('ListingFilters', () => {
         const mockOnFilterChange = jest.fn();
         const mockOnReset = jest.fn();
 
-        render(
+        renderWithTheme(
             <ListingFilters
                 filters={mockFilters}
                 onFilterChange={mockOnFilterChange}
@@ -108,7 +117,7 @@ describe('ListingFilters', () => {
         );
 
         expect(screen.getByRole('combobox', { name: /type/i })).toBeInTheDocument();
-        expect(screen.getByRole('combobox', { name: /category/i })).toBeInTheDocument();
+        expect(screen.getByRole('textbox', { name: /category/i })).toBeInTheDocument();
         expect(screen.getByRole('combobox', { name: /sort by/i })).toBeInTheDocument();
     });
 }); 
