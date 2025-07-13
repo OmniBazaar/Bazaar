@@ -8,8 +8,8 @@ interface CreateListingDialogProps {
     onSubmit: (listing: ListingMetadata) => void;
 }
 
-const Dialog = styled.div<{ open: boolean }>`
-  display: ${props => props.open ? 'flex' : 'none'};
+const Dialog = styled.div`
+  display: flex;
   position: fixed;
   top: 0;
   left: 0;
@@ -23,8 +23,8 @@ const Dialog = styled.div<{ open: boolean }>`
 
 const DialogContent = styled.div`
   background: ${props => props.theme.colors.background};
-  padding: ${props => props.theme.spacing.lg};
-  border-radius: ${props => props.theme.borderRadius.md};
+  padding: ${props => props.theme.spacing[6]};
+  border-radius: ${props => props.theme.borderRadius.lg};
   width: 100%;
   max-width: 600px;
   max-height: 90vh;
@@ -32,20 +32,20 @@ const DialogContent = styled.div`
 `;
 
 const Title = styled.h2`
-  margin: 0 0 ${props => props.theme.spacing.md};
+  margin: 0 0 ${props => props.theme.spacing[4]};
   color: ${props => props.theme.colors.text.primary};
 `;
 
 const Form = styled.form`
   display: flex;
   flex-direction: column;
-  gap: ${props => props.theme.spacing.md};
+  gap: ${props => props.theme.spacing[4]};
 `;
 
 const FormGroup = styled.div`
   display: flex;
   flex-direction: column;
-  gap: ${props => props.theme.spacing.xs};
+  gap: ${props => props.theme.spacing[2]};
 `;
 
 const Label = styled.label`
@@ -53,9 +53,9 @@ const Label = styled.label`
 `;
 
 const Input = styled.input`
-  padding: ${props => props.theme.spacing.sm};
+  padding: ${props => props.theme.spacing[3]};
   border: 1px solid ${props => props.theme.colors.border};
-  border-radius: ${props => props.theme.borderRadius.sm};
+  border-radius: ${props => props.theme.borderRadius.base};
   background: ${props => props.theme.colors.background};
   color: ${props => props.theme.colors.text.primary};
 
@@ -66,9 +66,9 @@ const Input = styled.input`
 `;
 
 const TextArea = styled.textarea`
-  padding: ${props => props.theme.spacing.sm};
+  padding: ${props => props.theme.spacing[3]};
   border: 1px solid ${props => props.theme.colors.border};
-  border-radius: ${props => props.theme.borderRadius.sm};
+  border-radius: ${props => props.theme.borderRadius.base};
   background: ${props => props.theme.colors.background};
   color: ${props => props.theme.colors.text.primary};
   min-height: 100px;
@@ -82,17 +82,17 @@ const TextArea = styled.textarea`
 
 const ButtonGroup = styled.div`
   display: flex;
-  gap: ${props => props.theme.spacing.sm};
+  gap: ${props => props.theme.spacing[3]};
   justify-content: flex-end;
-  margin-top: ${props => props.theme.spacing.md};
+  margin-top: ${props => props.theme.spacing[4]};
 `;
 
-const Button = styled.button<{ primary?: boolean }>`
-  padding: ${props => props.theme.spacing.sm} ${props => props.theme.spacing.md};
+const Button = styled.button<{ $primary?: boolean }>`
+  padding: ${props => props.theme.spacing[3]} ${props => props.theme.spacing[4]};
   border: none;
-  border-radius: ${props => props.theme.borderRadius.sm};
-  background: ${props => props.primary ? props.theme.colors.primary : props.theme.colors.background};
-  color: ${props => props.primary ? props.theme.colors.background : props.theme.colors.text.primary};
+  border-radius: ${props => props.theme.borderRadius.base};
+  background: ${props => props.$primary ? props.theme.colors.primary : props.theme.colors.background};
+  color: ${props => props.$primary ? props.theme.colors.background : props.theme.colors.text.primary};
   cursor: pointer;
   transition: opacity 0.2s;
 
@@ -134,13 +134,49 @@ export function CreateListingDialog({ open, onClose, onSubmit }: CreateListingDi
         onSubmit(formData as ListingMetadata);
     };
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-        const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
+    const updateNestedField = (obj: Record<string, unknown>, keys: string[], value: string): Record<string, unknown> => {
+        if (keys.length === 1) {
+            const key = keys[0];
+            if (key) {
+                return { ...obj, [key]: value };
+            }
+            return obj;
+        }
+
+        const [firstKey, ...remainingKeys] = keys;
+        if (!firstKey) {
+            return obj;
+        }
+
+        const nested = (obj[firstKey] as Record<string, unknown>) || {};
+        return {
+            ...obj,
+            [firstKey]: updateNestedField(nested, remainingKeys, value)
+        };
     };
 
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        const { name, value } = e.target;
+        
+        // Handle nested form fields
+        if (name.includes('.')) {
+            const keys = name.split('.');
+            setFormData(prev => {
+                const result = updateNestedField(prev as Record<string, unknown>, keys, value);
+                return result as Partial<ListingMetadata>;
+            });
+        } else {
+            // Handle simple fields
+            setFormData(prev => ({ ...prev, [name]: value }));
+        }
+    };
+
+    if (!open) {
+        return null;
+    }
+
     return (
-        <Dialog open={open}>
+        <Dialog>
             <DialogContent>
                 <Title>Create New Listing</Title>
                 <Form onSubmit={handleSubmit}>
@@ -250,7 +286,7 @@ export function CreateListingDialog({ open, onClose, onSubmit }: CreateListingDi
                         <Button type="button" onClick={onClose}>
                             Cancel
                         </Button>
-                        <Button type="submit" primary>
+                        <Button type="submit" $primary>
                             Create Listing
                         </Button>
                     </ButtonGroup>
