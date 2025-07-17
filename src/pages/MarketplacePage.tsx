@@ -6,7 +6,7 @@ import { CreateListingDialog } from '../components/listings/CreateListingDialog'
 import { ListingMetadata } from '../types/listing';
 
 const Container = styled.div`
-  padding: ${props => props.theme.spacing.lg};
+  padding: ${props => props.theme.spacing[6]};
   max-width: 1200px;
   margin: 0 auto;
 `;
@@ -15,7 +15,7 @@ const Header = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: ${props => props.theme.spacing.lg};
+  margin-bottom: ${props => props.theme.spacing[6]};
 `;
 
 const Title = styled.h1`
@@ -24,7 +24,7 @@ const Title = styled.h1`
 `;
 
 const CreateButton = styled.button`
-  padding: ${props => props.theme.spacing.sm} ${props => props.theme.spacing.md};
+  padding: ${props => props.theme.spacing[3]} ${props => props.theme.spacing[4]};
   background: ${props => props.theme.colors.primary};
   color: ${props => props.theme.colors.background};
   border: none;
@@ -40,24 +40,24 @@ const CreateButton = styled.button`
 const Grid = styled.div`
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: ${props => props.theme.spacing.lg};
+  gap: ${props => props.theme.spacing[6]};
 `;
 
 const Loading = styled.div`
   text-align: center;
-  padding: ${props => props.theme.spacing.xl};
+  padding: ${props => props.theme.spacing[8]};
   color: ${props => props.theme.colors.text.secondary};
 `;
 
-const Error = styled.div`
+const ErrorMessage = styled.div`
   text-align: center;
-  padding: ${props => props.theme.spacing.xl};
+  padding: ${props => props.theme.spacing[8]};
   color: ${props => props.theme.colors.error};
 `;
 
 const Empty = styled.div`
   text-align: center;
-  padding: ${props => props.theme.spacing.xl};
+  padding: ${props => props.theme.spacing[8]};
   color: ${props => props.theme.colors.text.secondary};
 `;
 
@@ -66,14 +66,18 @@ export function MarketplacePage() {
     const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
 
     useEffect(() => {
-        searchListings({});
+        searchListings({}).catch(console.error);
     }, [searchListings]);
 
     const handleCreateListing = async (listing: ListingMetadata) => {
-        const cid = await createListing(listing);
-        if (cid) {
-            setIsCreateDialogOpen(false);
-            searchListings({});
+        try {
+            const cid = await createListing(listing);
+            if (cid) {
+                setIsCreateDialogOpen(false);
+                await searchListings({});
+            }
+        } catch (error) {
+            console.error('Failed to create listing:', error);
         }
     };
 
@@ -82,7 +86,7 @@ export function MarketplacePage() {
     }
 
     if (error) {
-        return <Error>{error}</Error>;
+        return <ErrorMessage>{error}</ErrorMessage>;
     }
 
     return (
@@ -100,7 +104,7 @@ export function MarketplacePage() {
                 <Grid>
                     {listings.map(listing => (
                         <ListingCard
-                            key={listing.cid}
+                            key={listing.cid ?? listing.title}
                             listing={listing}
                             onClick={() => {/* TODO: Navigate to listing detail */ }}
                         />
@@ -111,7 +115,7 @@ export function MarketplacePage() {
             <CreateListingDialog
                 open={isCreateDialogOpen}
                 onClose={() => setIsCreateDialogOpen(false)}
-                onSubmit={handleCreateListing}
+                onSubmit={(listing) => void handleCreateListing(listing)}
             />
         </Container>
     );

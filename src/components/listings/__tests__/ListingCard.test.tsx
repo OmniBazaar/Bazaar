@@ -48,15 +48,23 @@ describe('ListingCard', () => {
     });
 
     it('renders listing information correctly', () => {
-        renderWithTheme(<ListingCard listing={mockListing} />);
+        const listingWithDetails = {
+            ...mockListing,
+            productDetails: {
+                condition: 'new' as const,
+                brand: 'Test Brand'
+            }
+        };
+        
+        renderWithTheme(<ListingCard listing={listingWithDetails} />);
 
-        expect(screen.getByText(mockListing.title)).toBeInTheDocument();
-        expect(screen.getByText(`${mockListing.price} ${mockListing.currency}`)).toBeInTheDocument();
-        expect(screen.getByText(mockListing.description)).toBeInTheDocument();
-        expect(screen.getByText(`Condition: ${mockListing.productDetails?.condition}`)).toBeInTheDocument();
-        expect(screen.getByText(`${mockListing.location.city}, ${mockListing.location.country}`)).toBeInTheDocument();
-        expect(screen.getByText(mockListing.seller.name)).toBeInTheDocument();
-        expect(screen.getByText(`⭐ ${mockListing.seller.rating}`)).toBeInTheDocument();
+        expect(screen.getByText(listingWithDetails.title)).toBeInTheDocument();
+        expect(screen.getByText(`${listingWithDetails.price} ${listingWithDetails.currency}`)).toBeInTheDocument();
+        expect(screen.getByText(listingWithDetails.description)).toBeInTheDocument();
+        expect(screen.getByText(`Condition: ${listingWithDetails.productDetails.condition}`)).toBeInTheDocument();
+        expect(screen.getByText(`${listingWithDetails.location.city}, ${listingWithDetails.location.country}`)).toBeInTheDocument();
+        expect(screen.getByText(listingWithDetails.seller.name)).toBeInTheDocument();
+        expect(screen.getByText(`⭐ ${listingWithDetails.seller.rating}`)).toBeInTheDocument();
     });
 
     it('calls onClick handler when clicked', () => {

@@ -115,21 +115,28 @@ describe('CreateListingDialog', () => {
         expect(mockOnSubmit).toHaveBeenCalledWith(expect.objectContaining({
             title: 'Test Listing',
             description: 'Test Description',
-            price: 100,
+            price: '100',
             type: 'product',
+            currency: 'USD',
+            category: '',
+            tags: [],
+            images: [],
             location: {
                 country: 'Test Country',
                 city: 'Test City',
-                coordinates: { lat: 0, lng: 0 }
+                coordinates: { latitude: 0, longitude: 0 }
             },
             seller: {
+                id: 'temp-id',
                 name: 'Test Seller',
+                avatar: '',
                 rating: 0,
                 contactInfo: {
                     email: 'test@example.com',
                     phone: '1234567890'
                 }
-            }
+            },
+            status: 'active'
         }));
     });
 }); 

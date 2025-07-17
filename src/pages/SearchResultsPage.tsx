@@ -93,11 +93,40 @@ const Error = styled.div`
     color: ${props => props.theme.colors.error};
 `;
 
+const Pagination = styled.div`
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: ${props => props.theme.spacing[3]};
+    margin-top: ${props => props.theme.spacing[6]};
+`;
+
+const PageButton = styled.button<{ $active?: boolean }>`
+    padding: ${props => props.theme.spacing[2]} ${props => props.theme.spacing[3]};
+    border: 1px solid ${props => props.theme.colors.border};
+    border-radius: ${props => props.theme.borderRadius.base};
+    background: ${props => props.$active ? props.theme.colors.primary : props.theme.colors.background};
+    color: ${props => props.$active ? props.theme.colors.background : props.theme.colors.text.primary};
+    cursor: pointer;
+    transition: all ${props => props.theme.transitions.base};
+
+    &:hover {
+        background: ${props => props.$active ? props.theme.colors.primaryHover : props.theme.colors.hover};
+    }
+
+    &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+`;
+
 export function SearchResultsPage() {
     const { listings, loading, error, searchListings } = useListings();
     const [searchQuery, setSearchQuery] = useState('');
     const [filters, setFilters] = useState<Filters>({});
     const [sortBy, setSortBy] = useState('date');
+    const [currentPage, setCurrentPage] = useState(1);
+    const [itemsPerPage] = useState(20);
 
     useEffect(() => {
         // Initial search
@@ -106,29 +135,38 @@ export function SearchResultsPage() {
 
     const handleSearch = (query: string) => {
         setSearchQuery(query);
+        setCurrentPage(1); // Reset to first page on new search
         const searchParams = {
             query,
             ...filters,
-            sortBy: sortBy as any
+            sortBy: sortBy as any,
+            page: 1,
+            limit: itemsPerPage
         };
         searchListings(searchParams);
     };
 
     const handleFiltersChange = (newFilters: Filters) => {
         setFilters(newFilters);
+        setCurrentPage(1); // Reset to first page on filter change
         const searchParams = {
             query: searchQuery,
             ...newFilters,
-            sortBy: sortBy as any
+            sortBy: sortBy as any,
+            page: 1,
+            limit: itemsPerPage
         };
         searchListings(searchParams);
     };
 
     const handleClearFilters = () => {
         setFilters({});
+        setCurrentPage(1); // Reset to first page
         const searchParams = {
             query: searchQuery,
-            sortBy: sortBy as any
+            sortBy: sortBy as any,
+            page: 1,
+            limit: itemsPerPage
         };
         searchListings(searchParams);
     };
@@ -136,10 +174,25 @@ export function SearchResultsPage() {
     const handleSortChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const newSortBy = e.target.value;
         setSortBy(newSortBy);
+        setCurrentPage(1); // Reset to first page on sort change
         const searchParams = {
             query: searchQuery,
             ...filters,
-            sortBy: newSortBy as any
+            sortBy: newSortBy as any,
+            page: 1,
+            limit: itemsPerPage
+        };
+        searchListings(searchParams);
+    };
+
+    const handlePageChange = (page: number) => {
+        setCurrentPage(page);
+        const searchParams = {
+            query: searchQuery,
+            ...filters,
+            sortBy: sortBy as any,
+            page,
+            limit: itemsPerPage
         };
         searchListings(searchParams);
     };
@@ -164,15 +217,58 @@ export function SearchResultsPage() {
         }
 
         return (
-            <ResultsGrid>
-                {listings.map(listing => (
-                    <ListingCard
-                        key={listing.cid}
-                        listing={listing}
-                        onClick={() => {/* TODO: Navigate to listing detail */}}
-                    />
+            <>
+                <ResultsGrid>
+                    {listings.map(listing => (
+                        <ListingCard
+                            key={listing.cid}
+                            listing={listing}
+                            onClick={() => {
+                                // TODO: Navigate to listing detail
+                                console.log('Navigate to listing:', listing.cid);
+                            }}
+                        />
+                    ))}
+                </ResultsGrid>
+                {renderPagination()}
+            </>
+        );
+    };
+
+    const renderPagination = () => {
+        // Mock pagination - in real app this would come from API response
+        const totalPages = Math.ceil(listings.length / itemsPerPage);
+        if (totalPages <= 1) return null;
+
+        const pages = [];
+        for (let i = 1; i <= Math.min(totalPages, 5); i++) {
+            pages.push(i);
+        }
+
+        return (
+            <Pagination>
+                <PageButton
+                    disabled={currentPage === 1}
+                    onClick={() => handlePageChange(currentPage - 1)}
+                >
+                    Previous
+                </PageButton>
+                {pages.map(page => (
+                    <PageButton
+                        key={page}
+                        $active={page === currentPage}
+                        onClick={() => handlePageChange(page)}
+                    >
+                        {page}
+                    </PageButton>
                 ))}
-            </ResultsGrid>
+                <PageButton
+                    disabled={currentPage === totalPages}
+                    onClick={() => handlePageChange(currentPage + 1)}
+                >
+                    Next
+                </PageButton>
+            </Pagination>
         );
     };
 

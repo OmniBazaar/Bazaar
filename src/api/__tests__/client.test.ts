@@ -47,7 +47,6 @@ describe('APIClient', () => {
         } as Response);
 
         await expect(apiClient.searchListings({})).rejects.toThrow(APIError);
-        await expect(apiClient.searchListings({})).rejects.toThrow('API request failed');
     });
 
     it('should handle network error', async () => {

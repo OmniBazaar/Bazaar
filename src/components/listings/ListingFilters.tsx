@@ -1,6 +1,6 @@
 import React from 'react';
 import styled from 'styled-components';
-import { SearchFilters } from '../../../types/listing';
+import { SearchFilters } from '../../types/listing';
 
 const FiltersContainer = styled.div`
   padding: 1rem;
@@ -106,10 +106,11 @@ export const ListingFilters: React.FC<ListingFiltersProps> = ({
     return (
         <FiltersContainer>
             <FilterGroup>
-                <FilterLabel>Type</FilterLabel>
+                <FilterLabel htmlFor="filter-type">Type</FilterLabel>
                 <Select
+                    id="filter-type"
                     name="type"
-                    value={filters.type || ''}
+                    value={filters.type ?? ''}
                     onChange={handleInputChange}
                 >
                     <option value="">All Types</option>
@@ -119,52 +120,59 @@ export const ListingFilters: React.FC<ListingFiltersProps> = ({
             </FilterGroup>
 
             <FilterGroup>
-                <FilterLabel>Category</FilterLabel>
+                <FilterLabel htmlFor="filter-category">Category</FilterLabel>
                 <Input
+                    id="filter-category"
                     type="text"
                     name="category"
-                    value={filters.category || ''}
+                    value={filters.category ?? ''}
                     onChange={handleInputChange}
                     placeholder="Enter category"
                 />
             </FilterGroup>
 
             <FilterGroup>
-                <FilterLabel>Price Range</FilterLabel>
-                <PriceRange>
+                <FilterLabel htmlFor="filter-price-range">Price Range</FilterLabel>
+                <PriceRange id="filter-price-range">
                     <Input
+                        id="filter-price-min"
                         type="number"
                         name="min"
-                        value={filters.priceRange?.min || ''}
+                        value={filters.priceRange?.min ?? ''}
                         onChange={handlePriceChange}
                         placeholder="Min"
+                        aria-label="Minimum price"
                     />
                     <Input
+                        id="filter-price-max"
                         type="number"
                         name="max"
-                        value={filters.priceRange?.max || ''}
+                        value={filters.priceRange?.max ?? ''}
                         onChange={handlePriceChange}
                         placeholder="Max"
+                        aria-label="Maximum price"
                     />
                 </PriceRange>
             </FilterGroup>
 
             <FilterGroup>
-                <FilterLabel>Location</FilterLabel>
+                <FilterLabel htmlFor="filter-location">Location</FilterLabel>
                 <Input
+                    id="filter-location"
                     type="text"
                     name="location.city"
-                    value={filters.location?.city || ''}
+                    value={filters.location?.city ?? ''}
                     onChange={handleInputChange}
                     placeholder="City"
                 />
             </FilterGroup>
 
             <FilterGroup>
-                <FilterLabel>Sort By</FilterLabel>
+                <FilterLabel htmlFor="filter-sortby">Sort By</FilterLabel>
                 <Select
+                    id="filter-sortby"
                     name="sortBy"
-                    value={filters.sortBy || ''}
+                    value={filters.sortBy ?? ''}
                     onChange={handleInputChange}
                 >
                     <option value="price">Price</option>
@@ -175,10 +183,11 @@ export const ListingFilters: React.FC<ListingFiltersProps> = ({
             </FilterGroup>
 
             <FilterGroup>
-                <FilterLabel>Order</FilterLabel>
+                <FilterLabel htmlFor="filter-sortorder">Order</FilterLabel>
                 <Select
+                    id="filter-sortorder"
                     name="sortOrder"
-                    value={filters.sortOrder || ''}
+                    value={filters.sortOrder ?? ''}
                     onChange={handleInputChange}
                 >
                     <option value="asc">Ascending</option>
