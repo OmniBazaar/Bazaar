@@ -180,7 +180,7 @@ export function SearchFilters({ filters, onFiltersChange, onClearFilters }: Sear
             <FilterSection>
                 <FilterLabel>Category</FilterLabel>
                 <Select
-                    value={localFilters.category || ''}
+                    value={localFilters.category ?? ''}
                     onChange={(e) => handleFilterChange('category', e.target.value || undefined)}
                 >
                     {categories.map(cat => (
@@ -195,14 +195,14 @@ export function SearchFilters({ filters, onFiltersChange, onClearFilters }: Sear
                     <PriceInput
                         type="number"
                         placeholder="Min"
-                        value={localFilters.priceRange?.min || ''}
+                        value={localFilters.priceRange?.min ?? ''}
                         onChange={(e) => handlePriceRangeChange('min', e.target.value)}
                     />
                     <PriceLabel>to</PriceLabel>
                     <PriceInput
                         type="number"
                         placeholder="Max"
-                        value={localFilters.priceRange?.max || ''}
+                        value={localFilters.priceRange?.max ?? ''}
                         onChange={(e) => handlePriceRangeChange('max', e.target.value)}
                     />
                 </PriceRange>
@@ -213,20 +213,20 @@ export function SearchFilters({ filters, onFiltersChange, onClearFilters }: Sear
                 <Input
                     type="text"
                     placeholder="City"
-                    value={localFilters.location?.city || ''}
+                    value={localFilters.location?.city ?? ''}
                     onChange={(e) => handleLocationChange('city', e.target.value)}
                 />
                 <Input
                     type="text"
                     placeholder="State"
-                    value={localFilters.location?.state || ''}
+                    value={localFilters.location?.state ?? ''}
                     onChange={(e) => handleLocationChange('state', e.target.value)}
                     style={{ marginTop: '8px' }}
                 />
                 <Input
                     type="text"
                     placeholder="Country"
-                    value={localFilters.location?.country || ''}
+                    value={localFilters.location?.country ?? ''}
                     onChange={(e) => handleLocationChange('country', e.target.value)}
                     style={{ marginTop: '8px' }}
                 />
@@ -235,7 +235,7 @@ export function SearchFilters({ filters, onFiltersChange, onClearFilters }: Sear
             <FilterSection>
                 <FilterLabel>Sort By</FilterLabel>
                 <Select
-                    value={localFilters.sortBy || 'date'}
+                    value={localFilters.sortBy ?? 'date'}
                     onChange={(e) => handleFilterChange('sortBy', e.target.value)}
                 >
                     {sortOptions.map(option => (
@@ -247,7 +247,7 @@ export function SearchFilters({ filters, onFiltersChange, onClearFilters }: Sear
             <FilterSection>
                 <FilterLabel>Sort Order</FilterLabel>
                 <Select
-                    value={localFilters.sortOrder || 'desc'}
+                    value={localFilters.sortOrder ?? 'desc'}
                     onChange={(e) => handleFilterChange('sortOrder', e.target.value)}
                 >
                     <option value="desc">Descending</option>

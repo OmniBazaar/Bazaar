@@ -282,7 +282,7 @@ describe('useSecureSend', () => {
 
         try {
             await result.current.createEscrow(mockCreateEscrowParams);
-        } catch (e) {
+        } catch {
             // Expected error
         }
 

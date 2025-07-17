@@ -1,77 +1,145 @@
-import { create } from 'ipfs-http-client';
-import { Buffer } from 'buffer';
-import { toast } from 'react-toastify';
+// Clean IPFS implementation without unused dependencies
 
-const projectId = process.env.REACT_APP_INFURA_IPFS_PROJECT_ID;
-const projectSecret = process.env.REACT_APP_INFURA_IPFS_PROJECT_SECRET;
-const endpoint = process.env.REACT_APP_INFURA_IPFS_ENDPOINT || 'https://ipfs.infura.io:5001';
+interface IPFSConfig {
+  apiUrl: string;
+  gatewayUrl: string;
+}
 
-const auth = 'Basic ' + Buffer.from(projectId + ':' + projectSecret).toString('base64');
+const config: IPFSConfig = {
+  apiUrl: process.env['REACT_APP_IPFS_API_URL'] ?? 'https://ipfs.infura.io:5001',
+  gatewayUrl: process.env['REACT_APP_IPFS_GATEWAY_URL'] ?? 'https://ipfs.io'
+};
 
-const ipfs = create({
-  host: 'ipfs.infura.io',
-  port: 5001,
-  protocol: 'https',
-  headers: {
-    authorization: auth,
-  },
-});
+export class IPFSError extends Error {
+  constructor(message: string, public readonly operation: string) {
+    super(message);
+    this.name = 'IPFSError';
+  }
+}
 
 export const uploadToIPFS = async (file: File): Promise<string> => {
   try {
-    const added = await ipfs.add(file);
-    return added.path;
-  } catch (error) {
-    console.error('Error uploading file to IPFS:', error);
-    toast.error('Failed to upload file to IPFS');
-    throw error;
-  }
-};
+    const formData = new FormData();
+    formData.append('file', file);
 
-export const uploadMetadataToIPFS = async (metadata: any): Promise<string> => {
-  try {
-    const data = JSON.stringify(metadata);
-    const added = await ipfs.add(data);
-    return added.path;
-  } catch (error) {
-    console.error('Error uploading metadata to IPFS:', error);
-    toast.error('Failed to upload metadata to IPFS');
-    throw error;
-  }
-};
+    const response = await fetch(`${config.apiUrl}/api/v0/add`, {
+      method: 'POST',
+      body: formData,
+    });
 
-export const getFromIPFS = async (hash: string): Promise<any> => {
-  try {
-    const stream = ipfs.cat(hash);
-    const chunks = [];
-    for await (const chunk of stream) {
-      chunks.push(chunk);
+    if (!response.ok) {
+      throw new IPFSError('Failed to upload file to IPFS', 'upload');
     }
-    const data = Buffer.concat(chunks).toString();
-    return JSON.parse(data);
+
+    const result = await response.json();
+    return result.Hash;
   } catch (error) {
-    console.error('Error getting data from IPFS:', error);
-    toast.error('Failed to get data from IPFS');
-    throw error;
+    if (error instanceof IPFSError) {
+      throw error;
+    }
+    throw new IPFSError(
+      `Upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      'upload'
+    );
+  }
+};
+
+export const uploadMetadataToIPFS = async (metadata: Record<string, unknown>): Promise<string> => {
+  try {
+    const response = await fetch(`${config.apiUrl}/api/v0/add`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(metadata),
+    });
+
+    if (!response.ok) {
+      throw new IPFSError('Failed to upload metadata to IPFS', 'uploadMetadata');
+    }
+
+    const result = await response.json();
+    return result.Hash;
+  } catch (error) {
+    if (error instanceof IPFSError) {
+      throw error;
+    }
+    throw new IPFSError(
+      `Metadata upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      'uploadMetadata'
+    );
+  }
+};
+
+export const getFromIPFS = async (hash: string): Promise<Record<string, unknown>> => {
+  try {
+    if (!hash) {
+      throw new IPFSError('Hash is required', 'get');
+    }
+
+    const response = await fetch(`${config.gatewayUrl}/ipfs/${hash}`);
+    
+    if (!response.ok) {
+      throw new IPFSError(`Failed to fetch from IPFS: ${response.status}`, 'get');
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    if (error instanceof IPFSError) {
+      throw error;
+    }
+    throw new IPFSError(
+      `Get failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      'get'
+    );
   }
 };
 
 export const pinToIPFS = async (hash: string): Promise<void> => {
   try {
-    await ipfs.pin.add(hash);
+    if (!hash) {
+      throw new IPFSError('Hash is required', 'pin');
+    }
+
+    const response = await fetch(`${config.apiUrl}/api/v0/pin/add?arg=${hash}`, {
+      method: 'POST',
+    });
+
+    if (!response.ok) {
+      throw new IPFSError('Failed to pin to IPFS', 'pin');
+    }
   } catch (error) {
-    console.error('Error pinning to IPFS:', error);
-    toast.error('Failed to pin to IPFS');
-    throw error;
+    if (error instanceof IPFSError) {
+      throw error;
+    }
+    throw new IPFSError(
+      `Pin failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      'pin'
+    );
   }
 };
 
 export const unpinFromIPFS = async (hash: string): Promise<void> => {
   try {
-    await ipfs.pin.rm(hash);
+    if (!hash) {
+      throw new IPFSError('Hash is required', 'unpin');
+    }
+
+    const response = await fetch(`${config.apiUrl}/api/v0/pin/rm?arg=${hash}`, {
+      method: 'POST',
+    });
+
+    if (!response.ok) {
+      throw new IPFSError('Failed to unpin from IPFS', 'unpin');
+    }
   } catch (error) {
-    console.error('Error unpinning from IPFS:', error);
-    toast.error('Failed to unpin from IPFS');
-    throw error;
+    if (error instanceof IPFSError) {
+      throw error;
+    }
+    throw new IPFSError(
+      `Unpin failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      'unpin'
+    );
   }
 }; 

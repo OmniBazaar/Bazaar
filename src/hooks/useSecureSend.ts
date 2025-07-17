@@ -9,7 +9,7 @@ interface CreateEscrowParams {
   escrowAgent: string;
   amount: string;
   expirationTime: number;
-  listingId: string;
+  _listingId: string;
 }
 
 interface EscrowDetails {
@@ -35,7 +35,7 @@ export const useSecureSend = () => {
     escrowAgent,
     amount,
     expirationTime,
-    listingId,
+    _listingId,
   }: CreateEscrowParams): Promise<string> => {
     if (!contract || !account) {
       throw new Error('Contract or account not initialized');
@@ -70,7 +70,7 @@ export const useSecureSend = () => {
 
       return event.args.escrowId;
     } catch (err: any) {
-      setError(err.message || 'Failed to create escrow');
+      setError(err.message ?? 'Failed to create escrow');
       throw err;
     } finally {
       setLoading(false);
@@ -93,7 +93,7 @@ export const useSecureSend = () => {
       const signedTx = await signTransaction(tx);
       await signedTx.wait();
     } catch (err: any) {
-      setError(err.message || 'Failed to vote');
+      setError(err.message ?? 'Failed to vote');
       throw err;
     } finally {
       setLoading(false);

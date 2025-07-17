@@ -1,251 +1,246 @@
 // Content script for OmniBazaar marketplace extension
 // This script runs on web pages to detect marketplace-related content
 
-// Avoid multiple injection
+// Declare the Window interface extension at module level
+declare global {
+  interface Window {
+    omniBazaarContentScript?: boolean;
+  }
+}
+
+interface MarketplaceData {
+  title?: string;
+  price?: string;
+  description?: string;
+  images?: string[];
+  seller?: string;
+}
+
+interface ProductInfo {
+  title: string;
+  price: string;
+  description: string;
+  images: string[];
+  url: string;
+}
+
+// Function definitions at program root
+function detectMarketplaceData(sendResponse: (response: MarketplaceData) => void) {
+  const data: MarketplaceData = {};
+  
+  // Try to detect marketplace data from various e-commerce sites
+  const titleSelectors = [
+    'h1[data-automation-id="product-title"]', // Walmart
+    'span#productTitle', // Amazon
+    'h1[itemprop="name"]', // eBay
+    'h1.x-item-title', // eBay
+    'h1[data-testid="product-title"]', // Target
+    '.pdp-product-name', // Target
+    'h1.product-title', // Generic
+  ];
+
+  const priceSelectors = [
+    '[data-automation-id="product-price"] .sr-only',
+    '.a-price-whole',
+    '.notranslate',
+    '#prcIsum',
+    '[data-testid="product-price"]',
+    '.product-price'
+  ];
+
+  // Get title
+  for (const selector of titleSelectors) {
+    const element = document.querySelector(selector);
+    if (element?.textContent) {
+      data.title = element.textContent.trim();
+      break;
+    }
+  }
+
+  // Get price
+  for (const selector of priceSelectors) {
+    const element = document.querySelector(selector);
+    if (element?.textContent) {
+      data.price = element.textContent.trim();
+      break;
+    }
+  }
+
+  sendResponse(data);
+}
+
+function extractProductInfo(sendResponse: (response: ProductInfo) => void) {
+  const productInfo: ProductInfo = {
+    title: '',
+    price: '',
+    description: '',
+    images: [],
+    url: window.location.href
+  };
+
+  // Enhanced product detection
+  const titleElement = document.querySelector('h1') ?? 
+                      document.querySelector('[data-testid="product-title"]') ??
+                      document.querySelector('.product-title');
+  if (titleElement) {
+    productInfo.title = titleElement.textContent?.trim() ?? '';
+  }
+
+  const priceElement = document.querySelector('[data-testid="product-price"]') ??
+                      document.querySelector('.price') ??
+                      document.querySelector('.product-price');
+  if (priceElement) {
+    productInfo.price = priceElement.textContent?.trim() ?? '';
+  }
+
+  const descElement = document.querySelector('[data-testid="product-description"]') ??
+                     document.querySelector('.description') ??
+                     document.querySelector('.product-description');
+  if (descElement) {
+    productInfo.description = descElement.textContent?.trim() ?? '';
+  }
+
+  // Extract images
+  const images = document.querySelectorAll('img[data-testid="product-image"], .product-image img, .gallery img');
+  productInfo.images = Array.from(images)
+    .map(img => (img as HTMLImageElement).src)
+    .filter(src => src && !src.includes('placeholder'))
+    .slice(0, 5);
+
+  sendResponse(productInfo);
+}
+
+function injectOmniBazaarWidget() {
+  // Check if widget already exists
+  if (document.getElementById('omnibazaar-widget')) {
+    return;
+  }
+
+  const widget = document.createElement('div');
+  widget.id = 'omnibazaar-widget';
+  widget.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    width: 300px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    z-index: 10000;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 14px;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+  `;
+
+  widget.innerHTML = `
+    <div style="display: flex; align-items: center; margin-bottom: 10px;">
+      <div style="width: 24px; height: 24px; background: white; border-radius: 50%; margin-right: 10px; display: flex; align-items: center; justify-content: center;">
+        🌐
+      </div>
+      <div style="font-weight: 600;">OmniBazaar</div>
+    </div>
+    <div style="font-size: 12px; opacity: 0.9; line-height: 1.4;">
+      This product could be listed on OmniBazaar marketplace
+    </div>
+    <button style="
+      background: rgba(255,255,255,0.2);
+      border: 1px solid rgba(255,255,255,0.3);
+      color: white;
+      padding: 6px 12px;
+      border-radius: 4px;
+      margin-top: 10px;
+      cursor: pointer;
+      font-size: 12px;
+      width: 100%;
+    ">Import to OmniBazaar</button>
+  `;
+
+  widget.addEventListener('mouseenter', () => {
+    widget.style.transform = 'scale(1.02)';
+  });
+
+  widget.addEventListener('mouseleave', () => {
+    widget.style.transform = 'scale(1)';
+  });
+
+  widget.addEventListener('click', () => {
+    // Open OmniBazaar extension or redirect to marketplace
+    if (chrome?.runtime?.sendMessage) {
+      chrome.runtime.sendMessage({
+        type: 'OPEN_CREATE_LISTING',
+        data: {
+          url: window.location.href,
+          title: document.title
+        }
+      });
+    }
+  });
+
+  document.body.appendChild(widget);
+
+  // Auto-hide after 10 seconds
+  setTimeout(() => {
+    widget.style.opacity = '0.7';
+  }, 10000);
+}
+
+function analyzePageForMarketplace() {
+  const url = window.location.href;
+  const hostname = window.location.hostname;
+
+  // Check if this looks like a product/marketplace page
+  const marketplaceIndicators = [
+    'product', 'item', 'listing', 'buy', 'shop', 'store',
+    'amazon.com', 'ebay.com', 'etsy.com', 'alibaba.com'
+  ];
+
+  const hasMarketplaceIndicator = marketplaceIndicators.some(indicator => 
+    url.toLowerCase().includes(indicator) || hostname.toLowerCase().includes(indicator)
+  );
+
+  const productSelectors = [
+    'h1[data-automation-id="product-title"]',
+    'span#productTitle',
+    '[data-testid="product-price"]',
+    '.product-title',
+    '.price'
+  ];
+  
+  const hasProductElements = productSelectors.some(selector => 
+    document.querySelector(selector) !== null
+  );
+
+  if (hasMarketplaceIndicator || hasProductElements) {
+    // Small delay to let page load
+    setTimeout(injectOmniBazaarWidget, 2000);
+  }
+}
+
+// Check if already injected
 if (!window.omniBazaarContentScript) {
   window.omniBazaarContentScript = true;
 
-  console.log('OmniBazaar content script loaded');
-
-  // Listen for messages from popup or background
+  // Listen for messages from extension
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     switch (message.type) {
       case 'DETECT_MARKETPLACE_DATA':
         detectMarketplaceData(sendResponse);
-        return true;
-        
+        return true; // Indicates async response
       case 'EXTRACT_PRODUCT_INFO':
         extractProductInfo(sendResponse);
         return true;
-        
-      case 'INJECT_OMNIBAZAAR_WIDGET':
+      case 'INJECT_WIDGET':
         injectOmniBazaarWidget();
+        break;
+      default:
         break;
     }
   });
 
-  // Detect marketplace-related data on the page
-  function detectMarketplaceData(sendResponse: (response: any) => void) {
-    const marketplaceData = {
-      hasProducts: false,
-      productCount: 0,
-      potentialListings: [],
-      marketplace: null,
-    };
-
-    // Check for common e-commerce platforms
-    if (window.location.hostname.includes('ebay.com')) {
-      marketplaceData.marketplace = 'ebay';
-      marketplaceData.hasProducts = true;
-    } else if (window.location.hostname.includes('amazon.com')) {
-      marketplaceData.marketplace = 'amazon';
-      marketplaceData.hasProducts = true;
-    } else if (window.location.hostname.includes('etsy.com')) {
-      marketplaceData.marketplace = 'etsy';
-      marketplaceData.hasProducts = true;
-    }
-
-    // Look for product elements
-    const productSelectors = [
-      '[data-testid*="product"]',
-      '.product',
-      '.item',
-      '.listing',
-      '[itemtype*="Product"]',
-    ];
-
-    productSelectors.forEach(selector => {
-      const elements = document.querySelectorAll(selector);
-      if (elements.length > 0) {
-        marketplaceData.hasProducts = true;
-        marketplaceData.productCount += elements.length;
-      }
-    });
-
-    sendResponse(marketplaceData);
-  }
-
-  // Extract product information from the current page
-  function extractProductInfo(sendResponse: (response: any) => void) {
-    const productInfo = {
-      title: '',
-      price: '',
-      description: '',
-      images: [],
-      category: '',
-      specs: {},
-    };
-
-    // Try to extract product title
-    const titleSelectors = [
-      'h1',
-      '[data-testid*="title"]',
-      '.product-title',
-      '.item-title',
-    ];
-
-    for (const selector of titleSelectors) {
-      const element = document.querySelector(selector);
-      if (element?.textContent?.trim()) {
-        productInfo.title = element.textContent.trim();
-        break;
-      }
-    }
-
-    // Try to extract price
-    const priceSelectors = [
-      '[data-testid*="price"]',
-      '.price',
-      '.cost',
-      '[class*="price"]',
-      '[class*="cost"]',
-    ];
-
-    for (const selector of priceSelectors) {
-      const element = document.querySelector(selector);
-      if (element?.textContent?.match(/\$[\d,]+\.?\d*/)) {
-        productInfo.price = element.textContent.trim();
-        break;
-      }
-    }
-
-    // Try to extract description
-    const descSelectors = [
-      '[data-testid*="description"]',
-      '.description',
-      '.product-description',
-      '.item-description',
-    ];
-
-    for (const selector of descSelectors) {
-      const element = document.querySelector(selector);
-      if (element?.textContent?.trim()) {
-        productInfo.description = element.textContent.trim().substring(0, 500);
-        break;
-      }
-    }
-
-    // Extract images
-    const imageElements = document.querySelectorAll('img[src*="product"], img[src*="item"]');
-    productInfo.images = Array.from(imageElements)
-      .slice(0, 5) // Limit to 5 images
-      .map(img => (img as HTMLImageElement).src)
-      .filter(src => src && !src.includes('data:'));
-
-    sendResponse(productInfo);
-  }
-
-  // Inject OmniBazaar widget for marketplace detection
-  function injectOmniBazaarWidget() {
-    // Check if widget already exists
-    if (document.getElementById('omnibazaar-widget')) {
-      return;
-    }
-
-    // Create widget container
-    const widget = document.createElement('div');
-    widget.id = 'omnibazaar-widget';
-    widget.style.cssText = `
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      width: 300px;
-      background: #2196F3;
-      color: white;
-      padding: 15px;
-      border-radius: 8px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-      z-index: 10000;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      font-size: 14px;
-      line-height: 1.4;
-    `;
-
-    widget.innerHTML = `
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-        <strong>OmniBazaar</strong>
-        <button id="omnibazaar-close" style="background: none; border: none; color: white; font-size: 18px; cursor: pointer;">&times;</button>
-      </div>
-      <p style="margin: 0 0 10px 0;">Found marketplace content on this page!</p>
-      <button id="omnibazaar-import" style="
-        background: rgba(255,255,255,0.2);
-        border: 1px solid rgba(255,255,255,0.3);
-        color: white;
-        padding: 8px 16px;
-        border-radius: 4px;
-        cursor: pointer;
-        width: 100%;
-      ">Import to OmniBazaar</button>
-    `;
-
-    // Add event listeners
-    const closeBtn = widget.querySelector('#omnibazaar-close');
-    closeBtn?.addEventListener('click', () => {
-      widget.remove();
-    });
-
-    const importBtn = widget.querySelector('#omnibazaar-import');
-    importBtn?.addEventListener('click', () => {
-      // Extract product info and send to extension
-      extractProductInfo((productInfo) => {
-        chrome.runtime.sendMessage({
-          type: 'IMPORT_PRODUCT',
-          payload: productInfo,
-        });
-        widget.remove();
-      });
-    });
-
-    document.body.appendChild(widget);
-
-    // Auto-hide after 10 seconds
-    setTimeout(() => {
-      if (widget.parentNode) {
-        widget.remove();
-      }
-    }, 10000);
-  }
-
-  // Page analysis on load
-  function analyzePageForMarketplace() {
-    // Check if this looks like a marketplace or product page
-    const indicators = [
-      'product',
-      'item',
-      'listing',
-      'shop',
-      'store',
-      'buy',
-      'sell',
-      'price',
-      'cart',
-      'checkout',
-    ];
-
-    const pageText = document.body.textContent?.toLowerCase() || '';
-    const url = window.location.href.toLowerCase();
-    
-    let marketplaceScore = 0;
-    indicators.forEach(indicator => {
-      if (pageText.includes(indicator) || url.includes(indicator)) {
-        marketplaceScore++;
-      }
-    });
-
-    // If it looks like a marketplace page, notify background
-    if (marketplaceScore >= 3) {
-      chrome.runtime.sendMessage({
-        type: 'MARKETPLACE_DETECTED',
-        payload: {
-          url: window.location.href,
-          score: marketplaceScore,
-          domain: window.location.hostname,
-        },
-      });
-    }
-  }
-
-  // Run analysis when page is fully loaded
+  // Auto-analyze page on load
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', analyzePageForMarketplace);
   } else {
@@ -253,11 +248,4 @@ if (!window.omniBazaarContentScript) {
   }
 }
 
-// Extend Window interface for TypeScript
-declare global {
-  interface Window {
-    omniBazaarContentScript?: boolean;
-  }
-}
-
-export {}; 
+export {}; // Make this a module 

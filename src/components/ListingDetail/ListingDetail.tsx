@@ -11,7 +11,6 @@ import { useTransfer } from '../../hooks/useTransfer';
 import { Listing } from '../../types/listing';
 import { formatPrice } from '../../utils/format';
 import { Button } from '../ui/Button';
-import { Card } from '../ui/Card';
 import { LoadingSpinner } from '../ui/LoadingSpinner';
 import { UserProfile } from '../UserProfile/UserProfile';
 import { PurchaseForm } from './PurchaseForm';
@@ -108,7 +107,7 @@ export const ListingDetail: React.FC = () => {
       });
       toast.success('Purchase initiated successfully!');
       setShowPurchaseForm(false);
-    } catch (err) {
+    } catch {
       toast.error('Failed to initiate purchase. Please try again.');
     }
   };

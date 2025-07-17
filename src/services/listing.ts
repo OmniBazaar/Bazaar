@@ -1,164 +1,173 @@
 import { ethers } from 'ethers';
-import { toast } from 'react-toastify';
-import { uploadToIPFS, uploadMetadataToIPFS, getFromIPFS, pinToIPFS } from './ipfs';
+import { uploadToIPFS, uploadMetadataToIPFS } from './ipfs';
 import { ListingMetadata, ListingNode, ListingTransaction } from '../types/listing';
-import { useWallet } from '@omniwallet/react';
-import { useContract } from '../hooks/useContract';
-import { LISTING_NFT_ABI } from '../constants/abis';
-import { LISTING_NFT_ADDRESS } from '../constants/addresses';
+
+// Define the interface for contract interactions
+interface ContractDependencies {
+  contract: ethers.Contract;
+  signer: ethers.Signer;
+  account: string;
+}
 
 export const createListing = async (
   metadata: Omit<ListingMetadata, 'blockchainData'>,
   images: File[],
-  listingNode: ListingNode
+  listingNode: ListingNode,
+  dependencies: ContractDependencies
 ): Promise<string> => {
   try {
-    // Upload images to IPFS
-    const imageHashes = await Promise.all(images.map(uploadToIPFS));
-    const mainImage = imageHashes[0];
-    const additionalImages = imageHashes.slice(1);
+    const { contract, signer, account } = dependencies;
+    
+    if (!account) {
+      throw new Error('Wallet not connected');
+    }
 
-    // Create metadata with image hashes
-    const listingMetadata: ListingMetadata = {
+    // Upload images to IPFS
+    const imageUrls: string[] = [];
+    for (const image of images) {
+      const hash = await uploadToIPFS(image);
+      imageUrls.push(`https://ipfs.io/ipfs/${hash}`);
+    }
+
+    // Create complete metadata with images
+    const completeMetadata: ListingMetadata = {
       ...metadata,
-      image: mainImage,
-      images: additionalImages,
-      blockchainData: {
-        tokenId: '', // Will be set after minting
-        contractAddress: LISTING_NFT_ADDRESS,
-        listingNode: listingNode.address,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
+      images: imageUrls,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     };
 
     // Upload metadata to IPFS
-    const metadataHash = await uploadMetadataToIPFS(listingMetadata);
-    await pinToIPFS(metadataHash);
+    const metadataHash = await uploadMetadataToIPFS(completeMetadata);
 
-    // Mint NFT with metadata hash
-    const contract = useContract(LISTING_NFT_ADDRESS, LISTING_NFT_ABI);
-    const wallet = useWallet();
+    // Create listing on blockchain
+    const tx = await contract.connect(signer)['createListing'](
+      metadataHash,
+      ethers.utils.parseEther(metadata.price.toString()),
+      metadata.quantity || 1
+    );
 
-    if (!contract || !wallet.account) {
-      throw new Error('Contract or wallet not initialized');
-    }
-
-    const tx = await contract.mint(wallet.account, metadataHash);
     const receipt = await tx.wait();
-
-    // Get token ID from event
-    const event = receipt.events?.find(e => e.event === 'Transfer');
-    const tokenId = event?.args?.tokenId.toString();
+    
+    // Extract token ID from logs
+    const event = receipt.events?.find((e: any) => e.event === 'ListingCreated');
+    const tokenId = event?.args?.tokenId?.toString();
 
     if (!tokenId) {
-      throw new Error('Failed to get token ID from mint transaction');
+      throw new Error('Failed to get token ID from transaction');
     }
-
-    // Update metadata with token ID
-    listingMetadata.blockchainData.tokenId = tokenId;
-    const updatedMetadataHash = await uploadMetadataToIPFS(listingMetadata);
-    await pinToIPFS(updatedMetadataHash);
 
     return tokenId;
   } catch (error) {
-    console.error('Error creating listing:', error);
-    toast.error('Failed to create listing');
-    throw error;
+    throw new Error(`Failed to create listing: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 };
 
 export const updateListing = async (
   tokenId: string,
   metadata: Partial<ListingMetadata>,
-  newImages?: File[]
+  newImages: File[] = [],
+  dependencies: ContractDependencies
 ): Promise<void> => {
   try {
-    // Get current metadata
-    const contract = useContract(LISTING_NFT_ADDRESS, LISTING_NFT_ABI);
-    const currentMetadataHash = await contract.tokenURI(tokenId);
-    const currentMetadata = await getFromIPFS(currentMetadataHash);
+    const { contract, signer } = dependencies;
 
+    // Get current listing
+    const currentListing = await getListing(tokenId, dependencies);
+    
     // Upload new images if provided
-    let imageHashes = currentMetadata.images;
-    if (newImages && newImages.length > 0) {
-      const newImageHashes = await Promise.all(newImages.map(uploadToIPFS));
-      imageHashes = [...newImageHashes, ...currentMetadata.images];
+    let imageUrls = currentListing.images;
+    if (newImages.length > 0) {
+      const newImageUrls: string[] = [];
+      for (const image of newImages) {
+        const hash = await uploadToIPFS(image);
+        newImageUrls.push(`https://ipfs.io/ipfs/${hash}`);
+      }
+      imageUrls = [...currentListing.images, ...newImageUrls];
     }
 
-    // Update metadata
+    // Create updated metadata
     const updatedMetadata: ListingMetadata = {
-      ...currentMetadata,
+      ...currentListing,
       ...metadata,
-      images: imageHashes,
-      blockchainData: {
-        ...currentMetadata.blockchainData,
-        updatedAt: new Date().toISOString(),
-      },
+      images: imageUrls,
+      updatedAt: new Date().toISOString(),
     };
 
-    // Upload updated metadata
-    const newMetadataHash = await uploadMetadataToIPFS(updatedMetadata);
-    await pinToIPFS(newMetadataHash);
+    // Upload updated metadata to IPFS
+    const metadataHash = await uploadMetadataToIPFS(updatedMetadata);
 
-    // Update token URI
-    const tx = await contract.setTokenURI(tokenId, newMetadataHash);
+    // Update listing on blockchain
+    const tx = await contract.connect(signer)['updateListing'](tokenId, metadataHash);
     await tx.wait();
   } catch (error) {
-    console.error('Error updating listing:', error);
-    toast.error('Failed to update listing');
-    throw error;
+    throw new Error(`Failed to update listing: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 };
 
-export const getListing = async (tokenId: string): Promise<ListingMetadata> => {
+export const getListing = async (
+  tokenId: string, 
+  dependencies: ContractDependencies
+): Promise<ListingMetadata> => {
   try {
-    const contract = useContract(LISTING_NFT_ADDRESS, LISTING_NFT_ABI);
-    const metadataHash = await contract.tokenURI(tokenId);
-    return await getFromIPFS(metadataHash);
+    const { contract } = dependencies;
+    
+    const listing = await contract['getListing'](tokenId);
+    
+    // Fetch metadata from IPFS
+    const response = await fetch(`https://ipfs.io/ipfs/${listing.metadataHash}`);
+    const metadata = await response.json();
+    
+    return {
+      ...metadata,
+      blockchain: {
+        tokenId,
+        contractAddress: contract.address,
+      },
+    };
   } catch (error) {
-    console.error('Error getting listing:', error);
-    toast.error('Failed to get listing details');
-    throw error;
+    throw new Error(`Failed to get listing: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 };
 
 export const createListingTransaction = async (
   listingId: string,
   buyer: string,
-  quantity: number
+  quantity: number,
+  dependencies: ContractDependencies
 ): Promise<ListingTransaction> => {
   try {
-    const contract = useContract(LISTING_NFT_ADDRESS, LISTING_NFT_ABI);
-    const listing = await getListing(listingId);
+    const { contract, signer } = dependencies;
 
-    const tx = await contract.createTransaction(
+    // Get listing details
+    const listing = await contract['getListing'](listingId);
+    
+    // Calculate total price
+    const totalPrice = listing.price.mul(quantity);
+    
+    // Create transaction
+    const tx = await contract.connect(signer)['purchaseListing'](
       listingId,
-      buyer,
       quantity,
-      listing.price.amount
+      { value: totalPrice }
     );
+    
     const receipt = await tx.wait();
-
-    const event = receipt.events?.find(e => e.event === 'TransactionCreated');
-    if (!event) {
-      throw new Error('Failed to get transaction details');
-    }
-
-    return {
+    
+    const transaction: ListingTransaction = {
       listingId,
-      seller: listing.seller.address,
+      seller: listing.seller,
       buyer,
-      price: ethers.BigNumber.from(listing.price.amount),
-      currency: listing.price.currency,
+      price: totalPrice,
+      currency: 'ETH', // This should be dynamic based on the token
       quantity,
       status: 'pending',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
     };
+
+    return transaction;
   } catch (error) {
-    console.error('Error creating transaction:', error);
-    toast.error('Failed to create transaction');
-    throw error;
+    throw new Error(`Failed to create transaction: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }; 

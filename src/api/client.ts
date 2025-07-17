@@ -1,6 +1,6 @@
 import { ListingMetadata, SearchFilters } from '../types/listing';
 
-const API_URL = process.env.REACT_APP_STORAGE_API_URL || 'http://localhost:3000/api';
+const API_URL = process.env.REACT_APP_STORAGE_API_URL ?? 'http://localhost:3000/api';
 
 export class APIError extends Error {
     constructor(message: string, public status?: number) {

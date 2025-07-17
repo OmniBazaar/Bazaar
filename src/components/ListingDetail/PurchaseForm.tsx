@@ -61,7 +61,7 @@ export const PurchaseForm: React.FC<PurchaseFormProps> = ({
     setIsSubmitting(true);
     try {
       await onSubmit(quantity);
-    } catch (error) {
+    } catch {
       toast.error('Failed to process purchase');
     } finally {
       setIsSubmitting(false);

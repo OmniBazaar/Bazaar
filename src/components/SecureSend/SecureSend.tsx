@@ -103,6 +103,7 @@ export const SecureSend: React.FC<SecureSendProps> = ({
   const { createEscrow, loading, error } = useSecureSend();
   const [escrowAgent, setEscrowAgent] = useState('');
   const [expirationTime, setExpirationTime] = useState('90'); // Default 90 days
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (error) {
@@ -119,18 +120,22 @@ export const SecureSend: React.FC<SecureSendProps> = ({
     }
 
     try {
-      const escrowId = await createEscrow({
+      const _escrowId = await createEscrow({
         sellerAddress,
-        escrowAgent,
+        escrowAgent: escrowAgent,
         amount,
-        expirationTime: parseInt(expirationTime) * 24 * 60 * 60, // Convert days to seconds
+        expirationTime: Math.floor(Date.now() / 1000) + parseInt(expirationTime) * 3600,
         listingId,
       });
 
       toast.success('SecureSend escrow created successfully!');
-      onSuccess?.();
-    } catch (err) {
-      toast.error('Failed to create SecureSend escrow');
+      if (onSuccess) {
+        onSuccess();
+      }
+    } catch {
+      toast.error('Failed to create escrow. Please try again.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -173,7 +178,7 @@ export const SecureSend: React.FC<SecureSendProps> = ({
           <Input type="text" value={amount} disabled />
         </FormGroup>
 
-        <Button type="submit" disabled={loading || !account}>
+        <Button type="submit" disabled={loading || !account || isSubmitting}>
           {!account ? 'Connect Wallet' : loading ? 'Creating...' : 'Create SecureSend'}
         </Button>
 

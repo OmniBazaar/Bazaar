@@ -99,23 +99,23 @@ const SuggestionItem = styled.div`
     }
 `;
 
+// Mock suggestions - in a real app, this would come from an API
+const mockSuggestions = [
+    "iPhone 15 Pro",
+    "MacBook Pro M3",
+    "Web Development Services",
+    "Graphic Design",
+    "Remote Software Engineer",
+    "Photography Services",
+    "Tutoring Services",
+    "Bitcoin Trading",
+    "OmniCoin Exchange"
+];
+
 export function SearchBar({ onSearch, placeholder = "Search for products, services, or jobs...", initialValue = "" }: SearchBarProps) {
     const [query, setQuery] = useState(initialValue);
     const [suggestions, setSuggestions] = useState<string[]>([]);
     const [showSuggestions, setShowSuggestions] = useState(false);
-
-    // Mock suggestions - in a real app, this would come from an API
-    const mockSuggestions = [
-        "iPhone 15 Pro",
-        "MacBook Pro M3",
-        "Web Development Services",
-        "Graphic Design",
-        "Remote Software Engineer",
-        "Photography Services",
-        "Tutoring Services",
-        "Bitcoin Trading",
-        "OmniCoin Exchange"
-    ];
 
     useEffect(() => {
         if (query.length > 2) {

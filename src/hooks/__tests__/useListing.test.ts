@@ -23,7 +23,7 @@ jest.mock('react-toastify', () => ({
 }));
 
 // Import after mocking
-const { APIClient } = require('../../api/client');
+import { APIClient } from '../../api/client';
 
 describe('useListing', () => {
     const mockListing = {
@@ -96,7 +96,7 @@ describe('useListing', () => {
             title: 'New Listing',
             description: 'New Description',
             price: 50,
-            currency: 'bitcoin',
+            currency: 'bitcoin' as const,
             quantity: 2,
             images: ['image2.jpg'],
             seller: {
@@ -110,14 +110,14 @@ describe('useListing', () => {
             createdAt: '2024-01-01T00:00:00Z',
             updatedAt: '2024-01-01T00:00:00Z',
             details: {
-                condition: 'used'
+                condition: 'used' as const
             },
             shipping: {
                 method: 'express',
                 cost: 20,
                 estimatedDelivery: '1-2 business days'
             },
-            status: 'active'
+            status: 'active' as const
         };
 
         const createdListing = { ...newListing, id: 'listing-2' };
@@ -135,8 +135,28 @@ describe('useListing', () => {
             title: 'Invalid Listing',
             description: '',
             price: -1,
-            currency: 'omnicoin',
-            quantity: 0
+            currency: 'omnicoin' as const,
+            quantity: 0,
+            images: [],
+            seller: {
+                id: 'invalid-seller',
+                username: 'invalid',
+                reputation: 0,
+                avatar: ''
+            },
+            category: 'invalid',
+            tags: [],
+            createdAt: '2024-01-01T00:00:00Z',
+            updatedAt: '2024-01-01T00:00:00Z',
+            details: {
+                condition: 'new' as const
+            },
+            shipping: {
+                method: 'standard',
+                cost: 0,
+                estimatedDelivery: 'never'
+            },
+            status: 'active' as const
         };
 
         mockAPIInstance.createListing.mockRejectedValue(new Error('Validation error'));
@@ -214,7 +234,7 @@ describe('useListing', () => {
 
         try {
             await result.current.getListing('listing-1');
-        } catch (e) {
+        } catch (_e) {
             // Expected error
         }
 
@@ -230,7 +250,7 @@ describe('useListing', () => {
 
         try {
             await result.current.getListing('listing-1');
-        } catch (e) {
+        } catch (_e) {
             // Expected error
         }
 
@@ -248,5 +268,40 @@ describe('useListing', () => {
         await waitFor(() => {
             expect(result.current.error).toBe(null);
         });
+    });
+
+    it('should handle update listing error', async () => {
+        const updates = { title: '' };
+
+        mockAPIInstance.updateListing.mockRejectedValue(new Error('Update failed'));
+        const { result } = renderHook(() => useListing());
+
+        await expect(result.current.updateListing('invalid-id', updates)).rejects.toThrow('Update failed');
+    });
+
+    it('should handle updating non-existent listing', async () => {
+        const { result } = renderHook(() => useListing());
+        mockAPIInstance.getListing.mockRejectedValue(new Error('Listing not found'));
+
+        try {
+            await result.current.updateListing('non-existent', { title: 'Updated' });
+            // Should not reach here
+            expect(true).toBe(false);
+        } catch (_e) {
+            // Expected to fail
+        }
+    });
+
+    it('should handle updating non-existent listing', async () => {
+        const { result } = renderHook(() => useListing());
+        const _updates = { title: 'Updated Title' };
+
+        try {
+            await result.current.updateListing('non-existent', _updates);
+            // Should not reach here
+            expect(true).toBe(false);
+        } catch (_e) {
+            // Expected to fail
+        }
     });
 }); 

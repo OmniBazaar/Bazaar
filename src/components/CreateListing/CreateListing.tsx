@@ -80,6 +80,30 @@ const ErrorMessage = styled.p`
   margin-top: 0.25rem;
 `;
 
+interface FormData {
+  name: string;
+  description: string;
+  price: number;
+  currency: string;
+  quantity: number;
+  category: string;
+  tags: string;
+  country: string;
+  city: string;
+  coordinates?: string;
+  username: string;
+  condition: string;
+  brand?: string;
+  model?: string;
+  specifications?: string;
+  dimensions?: string;
+  weight?: string;
+  shippingMethod: string;
+  shippingCost: number;
+  estimatedDelivery: string;
+  shippingRestrictions?: string;
+}
+
 interface CreateListingProps {
   listingNode: ListingNode;
   onSuccess: (tokenId: string) => void;
@@ -94,9 +118,9 @@ export const CreateListing: React.FC<CreateListingProps> = ({
   const { account } = useWallet();
   const [images, setImages] = useState<File[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { register, handleSubmit, formState: { errors } } = useForm();
+  const { register, handleSubmit, formState: { errors } } = useForm<FormData>();
 
-  const onSubmit = async (data: any) => {
+  const onSubmit = async (data: FormData) => {
     if (!account) {
       toast.error('Please connect your wallet first');
       return;
