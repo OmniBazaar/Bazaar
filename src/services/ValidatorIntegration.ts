@@ -71,20 +71,44 @@ export class ValidatorIntegrationService {
    */
   async initialize(): Promise<void> {
     try {
-      console.log('Initializing Validator Integration Service...');
+      // Initialize all services with retry logic
+      await this.validatorClient.connect();
       
-      await this.validatorClient.initialize();
-      
-      // Get service instances
-      this.storage = this.validatorClient.getStorage();
-      this.chat = this.validatorClient.getChat();
-      this.blockchain = this.validatorClient.getBlockchain();
-      this.feeDistribution = this.validatorClient.getFeeDistribution();
+      // Initialize distributed storage
+      this.storage = new IPFSStorageNetwork({
+        validatorEndpoint: this.config.validatorEndpoint,
+        networkId: this.config.networkId
+      });
+      await this.storage.initialize();
+
+      // Initialize P2P chat if enabled
+      if (this.config.enableChat) {
+        this.chat = new P2PChatNetwork({
+          validatorEndpoint: this.config.validatorEndpoint,
+          networkId: this.config.networkId,
+          userId: this.config.userId
+        });
+        await this.chat.initialize();
+      }
+
+      // Initialize blockchain integration
+      this.blockchain = new OmniCoinBlockchain({
+        validatorEndpoint: this.config.validatorEndpoint,
+        networkId: this.config.networkId
+      });
+      await this.blockchain.initialize();
+
+      // Initialize fee distribution if enabled
+      if (this.config.enableFeeDistribution) {
+        this.feeDistribution = new FeeDistributionEngine({
+          validatorEndpoint: this.config.validatorEndpoint,
+          networkId: this.config.networkId
+        });
+        await this.feeDistribution.initialize();
+      }
 
       this.isInitialized = true;
-      console.log('Validator Integration Service initialized successfully');
     } catch (error) {
-      console.error('Failed to initialize Validator Integration Service:', error);
       toast.error('Failed to connect to Validator services');
       throw error;
     }
@@ -93,23 +117,18 @@ export class ValidatorIntegrationService {
   /**
    * Store listing data on Validator IPFS
    */
-  async storeListingData(data: any, filename: string): Promise<ListingStorageResult> {
+  async storeListingData(_data: Record<string, unknown>, _filename: string): Promise<ListingStorageResult> {
     this.ensureInitialized();
-    
+
     try {
       if (!this.storage) {
-        throw new Error('Storage service not available');
+        throw new Error('Storage not initialized');
       }
 
-      const buffer = Buffer.from(JSON.stringify(data));
-      const result = await this.storage.storeData(
-        buffer,
-        filename,
-        'application/json',
-        this.config.userId
-      );
-
-      if (result.success) {
+      // Store data using validator IPFS service
+      const result = await this.storage.uploadData(_data, _filename);
+      
+      if (result.success && result.hash) {
         return {
           success: true,
           hash: result.hash
@@ -117,14 +136,14 @@ export class ValidatorIntegrationService {
       } else {
         return {
           success: false,
-          error: result.error
+          error: result.error ?? 'Upload failed'
         };
       }
     } catch (error) {
-      console.error('Error storing listing data:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Storage failed';
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: errorMessage
       };
     }
   }
@@ -160,7 +179,6 @@ export class ValidatorIntegrationService {
         };
       }
     } catch (error) {
-      console.error('Error storing listing image:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error'
@@ -171,24 +189,25 @@ export class ValidatorIntegrationService {
   /**
    * Retrieve listing data from Validator IPFS
    */
-  async retrieveListingData(hash: string): Promise<any> {
+  async retrieveListingData(hash: string): Promise<Record<string, unknown>> {
     this.ensureInitialized();
-    
+
     try {
       if (!this.storage) {
-        throw new Error('Storage service not available');
+        throw new Error('Storage not initialized');
       }
 
-      const result = await this.storage.retrieveData(hash);
+      // Retrieve data using validator IPFS service
+      const data = await this.storage.retrieveData(hash);
       
-      if (result.success && result.data) {
-        return JSON.parse(result.data.toString());
+      if (data) {
+        return data;
       } else {
-        throw new Error(result.error || 'Failed to retrieve data');
+        throw new Error(`Data not found for hash: ${hash}`);
       }
     } catch (error) {
-      console.error('Error retrieving listing data:', error);
-      throw error;
+      const errorMessage = error instanceof Error ? error.message : 'Retrieval failed';
+      throw new Error(`Failed to retrieve listing data: ${errorMessage}`);
     }
   }
 
@@ -230,10 +249,9 @@ export class ValidatorIntegrationService {
           messageType
         };
       } else {
-        throw new Error(result.error || 'Failed to send message');
+        throw new Error(result.error ?? 'Failed to send message');
       }
     } catch (error) {
-      console.error('Error sending chat message:', error);
       toast.error('Failed to send message');
       throw error;
     }
@@ -267,7 +285,6 @@ export class ValidatorIntegrationService {
         messageType: msg.messageType || 'text'
       }));
     } catch (error) {
-      console.error('Error getting chat messages:', error);
       throw error;
     }
   }
@@ -299,7 +316,6 @@ export class ValidatorIntegrationService {
         };
       }
     } catch (error) {
-      console.error('Error processing transaction:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error'
@@ -333,7 +349,6 @@ export class ValidatorIntegrationService {
         totalFees
       };
     } catch (error) {
-      console.error('Error calculating fees:', error);
       throw error;
     }
   }
@@ -357,9 +372,7 @@ export class ValidatorIntegrationService {
         timestamp: Date.now()
       });
 
-      console.log('Fees recorded for distribution:', fees);
     } catch (error) {
-      console.error('Error distributing fees:', error);
       // Don't throw error - fee distribution failure shouldn't block transaction
     }
   }
@@ -382,7 +395,6 @@ export class ValidatorIntegrationService {
         timestamp: Date.now()
       };
     } catch (error) {
-      console.error('Error getting marketplace stats:', error);
       throw error;
     }
   }
@@ -402,7 +414,6 @@ export class ValidatorIntegrationService {
         resourceUsage: status.resourceUsage
       };
     } catch (error) {
-      console.error('Error getting validator status:', error);
       throw error;
     }
   }
@@ -412,9 +423,9 @@ export class ValidatorIntegrationService {
    */
   async searchListings(
     query: string,
-    filters: any = {},
-    limit: number = 20,
-    offset: number = 0
+    _filters: any = {},
+    _limit: number = 20,
+    _offset: number = 0
   ): Promise<any[]> {
     this.ensureInitialized();
     
@@ -434,7 +445,6 @@ export class ValidatorIntegrationService {
         }
       ];
     } catch (error) {
-      console.error('Error searching listings:', error);
       throw error;
     }
   }
@@ -466,7 +476,6 @@ export class ValidatorIntegrationService {
         }
       });
     } catch (error) {
-      console.error('Error subscribing to updates:', error);
     }
   }
 
@@ -478,7 +487,6 @@ export class ValidatorIntegrationService {
       await this.validatorClient.disconnect();
     }
     this.isInitialized = false;
-    console.log('Validator Integration Service disconnected');
   }
 
   /**
@@ -496,10 +504,10 @@ export class ValidatorIntegrationService {
   }
 }
 
-// Export singleton instance for easy use
+// Export configured instance for easy use
 export const validatorIntegration = new ValidatorIntegrationService({
-  validatorEndpoint: process.env.REACT_APP_VALIDATOR_ENDPOINT || 'localhost',
-  networkId: process.env.REACT_APP_NETWORK_ID || 'omnibazaar-mainnet',
+  validatorEndpoint: process.env['REACT_APP_VALIDATOR_ENDPOINT'] ?? 'localhost',
+  networkId: process.env['REACT_APP_NETWORK_ID'] ?? 'omnibazaar-mainnet',
   userId: '', // Will be set when user logs in
   enableChat: true,
   enableFeeDistribution: true

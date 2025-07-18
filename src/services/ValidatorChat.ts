@@ -66,15 +66,18 @@ export class ValidatorChatService {
    */
   async initialize(): Promise<void> {
     try {
+      // Initialize validator integration
       await this.validatorIntegration.initialize();
+      
+      // Get initial chat rooms
+      const rooms = await this.getChatRooms();
+      this.activeRooms = new Map(rooms.map(room => [room.id, room]));
       
       // Subscribe to real-time updates
       this.validatorIntegration.subscribeToUpdates(this.handleRealtimeUpdate.bind(this));
       
-      console.log('Validator Chat Service initialized successfully');
     } catch (error) {
-      console.error('Failed to initialize Validator Chat Service:', error);
-      throw error;
+      throw new Error(`Failed to initialize chat service: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
@@ -101,7 +104,7 @@ export class ValidatorChatService {
         id: roomId,
         participants: [sellerId, buyerId],
         listingId,
-        title: `Chat about: ${listingTitle}`,
+        title: `Chat for: ${listingTitle ?? 'Unknown listing'}`,
         unreadCount: 0,
         created: Date.now(),
         updated: Date.now()
@@ -118,7 +121,6 @@ export class ValidatorChatService {
         timestamp: Date.now()
       });
 
-      console.log('Chat room created:', room);
       return room;
     } catch (error) {
       console.error('Error creating chat room:', error);
@@ -180,7 +182,6 @@ export class ValidatorChatService {
         timestamp: Date.now()
       });
 
-      console.log('Message sent:', message);
       return message;
     } catch (error) {
       console.error('Error sending message:', error);
@@ -261,7 +262,6 @@ export class ValidatorChatService {
     const room = this.activeRooms.get(roomId);
     if (room) {
       room.unreadCount = 0;
-      console.log(`Messages marked as read in room: ${roomId}`);
     }
   }
 
@@ -279,7 +279,6 @@ export class ValidatorChatService {
     this.typingIndicators.set(`${roomId}-${this.config.userId}`, indicator);
     
     // TODO: Send typing indicator to other participants
-    console.log('Started typing in room:', roomId);
   }
 
   /**
@@ -290,7 +289,6 @@ export class ValidatorChatService {
     this.typingIndicators.delete(key);
     
     // TODO: Send stop typing indicator to other participants
-    console.log('Stopped typing in room:', roomId);
   }
 
   /**
@@ -339,8 +337,8 @@ export class ValidatorChatService {
    */
   async sendFileMessage(roomId: string, file: File): Promise<ChatMessage> {
     try {
-      // Upload file to IPFS first
-      const fileBuffer = Buffer.from(await file.arrayBuffer());
+      // Read file as buffer for upload
+      const _fileBuffer = await file.arrayBuffer();
       const fileHash = await this.validatorIntegration.storeListingData(
         { filename: file.name, size: file.size, type: file.type },
         file.name
@@ -493,8 +491,8 @@ export class ValidatorChatService {
 
 // Export configured instance for easy use
 export const validatorChat = new ValidatorChatService({
-  validatorEndpoint: process.env.REACT_APP_VALIDATOR_ENDPOINT || 'localhost',
-  networkId: process.env.REACT_APP_NETWORK_ID || 'omnibazaar-mainnet',
+  validatorEndpoint: process.env['REACT_APP_VALIDATOR_ENDPOINT'] ?? 'localhost',
+  networkId: process.env['REACT_APP_NETWORK_ID'] ?? 'omnibazaar-mainnet',
   userId: '', // Will be set when user logs in
   enableNotifications: true,
   maxMessageLength: 1000

@@ -35,12 +35,18 @@
       "@/styles/*": ["src/styles/*"],
       "@/constants/*": ["src/constants/*"]
     },
+    "types": [
+      "jest",
+      "node",
+      "@testing-library/jest-dom"
+    ],
     "incremental": true,
     "tsBuildInfoFile": ".tsbuildinfo"
   },
   "include": [
     "src/**/*",
     "src/**/*.json",
+    "src/setupTests.ts",
     "**/*.d.ts"
   ],
   "exclude": [

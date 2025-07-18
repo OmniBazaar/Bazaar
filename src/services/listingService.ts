@@ -12,49 +12,50 @@ export const createListing = async (
   signer: ethers.Signer
 ): Promise<string> => {
   try {
-    // Upload images to IPFS
-    const imageHashes = await Promise.all(
-      images.map(async (image) => {
-        const hash = await uploadToIPFS(image);
-        return hash;
-      })
-    );
+    // Validate inputs
+    if (!metadata.title || !metadata.description) {
+      throw new Error('Title and description are required');
+    }
 
-    // Update metadata with image hashes
-    const updatedMetadata = {
-      ...metadata,
-      images: imageHashes
-    };
+    if (images.length === 0) {
+      throw new Error('At least one image is required');
+    }
 
-    // Upload metadata to IPFS
-    const metadataHash = await uploadMetadataToIPFS(updatedMetadata);
-
-    // Create contract instance
+    // Create listing NFT contract instance
     const contract = new ethers.Contract(
-      LISTING_NFT_ADDRESS,
+      listingNode.address,
       LISTING_NFT_ABI,
       signer
     );
 
-    // Mint NFT with metadata
-    const tx = await contract.mint(metadataHash);
-    const receipt = await tx.wait();
-
-    // Get token ID from event
-    const event = receipt.events?.find(
-      (e: any) => e.event === 'Transfer'
-    );
-    const tokenId = event?.args?.tokenId.toString();
-
-    if (!tokenId) {
-      throw new Error('Failed to get token ID from transaction');
+    // Upload listing data to IPFS via listing service
+    const result = await listingService.uploadToIPFS(metadata, images);
+    
+    if (!result.success) {
+      throw new Error(result.error ?? 'Failed to upload to IPFS');
     }
 
+    // Create listing NFT on blockchain
+    const tx: ethers.ContractTransaction = await contract.createListing(
+      result.metadataHash,
+      metadata.price,
+      metadata.quantity
+    );
+
+    const receipt = await tx.wait();
+    const event = receipt.events?.find(
+      (e: ethers.Event) => e.event === 'ListingCreated'
+    );
+
+    if (!event?.args) {
+      throw new Error('Failed to get listing token ID from transaction');
+    }
+
+    const tokenId = event.args.tokenId.toString();
     return tokenId;
   } catch (error) {
-    console.error('Error creating listing:', error);
-    toast.error('Failed to create listing');
-    throw error;
+    const errorMessage = error instanceof Error ? error.message : 'Failed to create listing';
+    throw new Error(errorMessage);
   }
 };
 
@@ -101,7 +102,6 @@ export const updateListing = async (
     const tx = await contract.setTokenURI(tokenId, metadataHash);
     await tx.wait();
   } catch (error) {
-    console.error('Error updating listing:', error);
     toast.error('Failed to update listing');
     throw error;
   }
@@ -123,7 +123,6 @@ export const getListing = async (
 
     return metadata;
   } catch (error) {
-    console.error('Error getting listing:', error);
     toast.error('Failed to get listing details');
     throw error;
   }
@@ -156,8 +155,14 @@ export const createListingTransaction = async (
 
     return transactionId;
   } catch (error) {
-    console.error('Error creating transaction:', error);
     toast.error('Failed to create transaction');
     throw error;
   }
-}; 
+};
+
+// Upload listing data to IPFS via listing service
+const result = await listingService.uploadToIPFS(listing, images);
+
+if (!result.success) {
+  throw new Error(result.error ?? 'Failed to upload to IPFS');
+} 

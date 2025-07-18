@@ -4,6 +4,7 @@ import { useListings } from '../hooks/useListings';
 import { ListingCard } from '../components/listings/ListingCard';
 import { CreateListingDialog } from '../components/listings/CreateListingDialog';
 import { ListingMetadata } from '../types/listing';
+import { toast } from 'react-hot-toast';
 
 const Container = styled.div`
   padding: ${props => props.theme.spacing[6]};
@@ -75,9 +76,11 @@ export function MarketplacePage() {
             if (cid) {
                 setIsCreateDialogOpen(false);
                 await searchListings({});
+                toast.success('Listing created successfully!');
             }
         } catch (error) {
-            console.error('Failed to create listing:', error);
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            toast.error(`Failed to create listing: ${errorMessage}`);
         }
     };
 

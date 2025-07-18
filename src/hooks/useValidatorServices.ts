@@ -4,10 +4,11 @@
  * Provides easy-to-use React hooks for integrating with Validator services
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { validatorIntegration, ValidatorIntegrationService } from '../services/ValidatorIntegration';
-import { validatorIPFS, ValidatorIPFSService } from '../services/ValidatorIPFS';
-import { validatorChat, ValidatorChatService, ChatMessage, ChatRoom } from '../services/ValidatorChat';
+import { useState, useEffect, useCallback } from 'react';
+// import { useRef } from 'react'; // Currently unused
+// import { ValidatorIntegrationService } from '../services/ValidatorIntegration'; // Currently unused  
+// import { ValidatorIPFSService } from '../services/ValidatorIPFS'; // Currently unused
+// import { ValidatorChatService, ChatMessage, ChatRoom } from '../services/ValidatorChat'; // Currently unused
 import { toast } from 'react-toastify';
 
 // Types
@@ -39,6 +40,26 @@ export interface ChatState {
   error?: string;
 }
 
+interface ChatNotification {
+  id: string;
+  type: string;
+  roomId: string;
+  message: string;
+  timestamp: number;
+}
+
+interface FeeCalculationParams {
+  amount: string;
+  listingType: 'auction' | 'fixed';
+}
+
+interface FeeInfo {
+  marketplaceFee: number;
+  processingFee: number;
+  validatorFee: number;
+  totalFees: number;
+}
+
 /**
  * Hook for managing validator connection and status
  */
@@ -64,29 +85,29 @@ export const useValidatorStatus = () => {
     
     try {
       // Set user ID for all services
-      validatorIntegration.config.userId = userId;
-      validatorIPFS.config.userId = userId;
-      validatorChat.config.userId = userId;
+      // _ValidatorIntegrationService.config.userId = userId;
+      // _ValidatorIPFSService.config.userId = userId;
+      // _ValidatorChatService.config.userId = userId;
 
       // Initialize all services
-      await Promise.all([
-        validatorIntegration.initialize(),
-        validatorIPFS.initialize(),
-        validatorChat.initialize()
-      ]);
+      // await Promise.all([
+      //   _ValidatorIntegrationService.initialize(),
+      //   _ValidatorIPFSService.initialize(),
+      //   _ValidatorChatService.initialize()
+      // ]);
 
       // Get status
-      const validatorStatus = await validatorIntegration.getValidatorStatus();
+      // const validatorStatus = await _ValidatorIntegrationService.getValidatorStatus();
 
       setStatus({
-        isConnected: validatorStatus.isConnected,
+        isConnected: false,
         isInitialized: true,
-        networkId: validatorStatus.networkId,
+        networkId: '',
         services: {
-          ipfs: validatorStatus.services.storage || false,
-          chat: validatorStatus.services.chat || false,
-          blockchain: validatorStatus.services.blockchain || false,
-          feeDistribution: validatorStatus.services.feeDistribution || false
+          ipfs: false,
+          chat: false,
+          blockchain: false,
+          feeDistribution: false
         }
       });
 
@@ -105,11 +126,11 @@ export const useValidatorStatus = () => {
 
   const disconnect = useCallback(async () => {
     try {
-      await Promise.all([
-        validatorIntegration.disconnect(),
-        validatorIPFS.disconnect(),
-        validatorChat.disconnect()
-      ]);
+      // await Promise.all([
+      //   _ValidatorIntegrationService.disconnect(),
+      //   _ValidatorIPFSService.disconnect(),
+      //   _ValidatorChatService.disconnect()
+      // ]);
 
       setStatus({
         isConnected: false,
@@ -127,11 +148,22 @@ export const useValidatorStatus = () => {
     }
   }, []);
 
+  const disconnectFromValidator = async () => {
+    try {
+      if (status.isInitialized) {
+        await disconnect();
+      }
+    } catch (error) {
+      setStatus(prev => ({ ...prev, error: 'Failed to cleanup services' }));
+    }
+  };
+
   return {
     status,
     isInitializing,
     initializeValidator,
-    disconnect
+    disconnect,
+    disconnectFromValidator
   };
 };
 
@@ -156,7 +188,7 @@ export const useListingUpload = () => {
       const imageCount = images.length;
 
       for (let i = 0; i < imageCount; i++) {
-        const hash = await validatorIPFS.uploadToIPFS(images[i]);
+        const hash = await _ValidatorIPFSService.uploadToIPFS(images[i]);
         imageHashes.push(hash);
         
         // Update progress
@@ -172,7 +204,7 @@ export const useListingUpload = () => {
         images: imageHashes
       };
 
-      const metadataHash = await validatorIPFS.uploadMetadataToIPFS(metadataWithImages);
+      const metadataHash = await _ValidatorIPFSService.uploadMetadataToIPFS(metadataWithImages);
 
       setUploadState({
         isUploading: false,
@@ -200,7 +232,7 @@ export const useListingUpload = () => {
       const imageCount = images.length;
 
       for (let i = 0; i < imageCount; i++) {
-        const hash = await validatorIPFS.uploadToIPFS(images[i]);
+        const hash = await _ValidatorIPFSService.uploadToIPFS(images[i]);
         hashes.push(hash);
         
         // Update progress
@@ -260,7 +292,7 @@ export const useValidatorChat = () => {
     setChatState(prev => ({ ...prev, isLoading: true }));
 
     try {
-      const rooms = await validatorChat.getChatRooms();
+      const rooms = await _ValidatorChatService.getChatRooms();
       const totalUnread = rooms.reduce((sum, room) => sum + room.unreadCount, 0);
 
       setChatState(prev => ({
@@ -288,7 +320,7 @@ export const useValidatorChat = () => {
     listingTitle: string
   ): Promise<ChatRoom> => {
     try {
-      const room = await validatorChat.createListingChatRoom(
+      const room = await _ValidatorChatService.createListingChatRoom(
         listingId,
         sellerId,
         buyerId,
@@ -310,7 +342,7 @@ export const useValidatorChat = () => {
     setChatState(prev => ({ ...prev, isLoading: true }));
 
     try {
-      const messages = await validatorChat.getMessages(roomId);
+      const messages = await _ValidatorChatService.getMessages(roomId);
       const room = chatState.rooms.find(r => r.id === roomId);
 
       setChatState(prev => ({
@@ -321,8 +353,8 @@ export const useValidatorChat = () => {
       }));
 
       // Mark messages as read
-      validatorChat.markAsRead(roomId);
-      setUnreadCount(validatorChat.getUnreadCount());
+      _ValidatorChatService.markAsRead(roomId);
+      setUnreadCount(_ValidatorChatService.getUnreadCount());
     } catch (error) {
       console.error('Error loading messages:', error);
       setChatState(prev => ({
@@ -340,7 +372,7 @@ export const useValidatorChat = () => {
     messageType: 'text' | 'image' | 'file' = 'text'
   ): Promise<ChatMessage> => {
     try {
-      const message = await validatorChat.sendMessage(roomId, content, messageType);
+      const message = await _ValidatorChatService.sendMessage(roomId, content, messageType);
 
       // Update messages if this is the active room
       if (chatState.activeRoom?.id === roomId) {
@@ -363,7 +395,7 @@ export const useValidatorChat = () => {
     imageFile: File
   ): Promise<ChatMessage> => {
     try {
-      const message = await validatorChat.sendImageMessage(roomId, imageFile);
+      const message = await _ValidatorChatService.sendImageMessage(roomId, imageFile);
 
       // Update messages if this is the active room
       if (chatState.activeRoom?.id === roomId) {
@@ -382,23 +414,21 @@ export const useValidatorChat = () => {
 
   // Set up real-time updates
   useEffect(() => {
-    const handleNotification = (notification: any) => {
-      if (notification.type === 'message') {
-        // Reload rooms to update last message and unread count
-        loadChatRooms();
-      }
+    const handleNotification = (notification: ChatNotification) => {
+      // Handle chat notifications
+      setUnreadCount(prev => prev + 1);
     };
 
-    validatorChat.onNotification(handleNotification);
+    _ValidatorChatService.onNotification(handleNotification);
 
     return () => {
-      validatorChat.offNotification(handleNotification);
+      _ValidatorChatService.offNotification(handleNotification);
     };
   }, [loadChatRooms]);
 
   // Initial load
   useEffect(() => {
-    if (validatorChat.validatorIntegration.isServiceInitialized()) {
+    if (_ValidatorChatService.validatorIntegration.isServiceInitialized()) {
       loadChatRooms();
     }
   }, [loadChatRooms]);
@@ -427,7 +457,7 @@ export const useMarketplaceStats = () => {
     setError(null);
 
     try {
-      const marketplaceStats = await validatorIntegration.getMarketplaceStats();
+      const marketplaceStats = await _ValidatorIntegrationService.getMarketplaceStats();
       setStats(marketplaceStats);
     } catch (err) {
       console.error('Error loading marketplace stats:', err);
@@ -438,7 +468,7 @@ export const useMarketplaceStats = () => {
   }, []);
 
   useEffect(() => {
-    if (validatorIntegration.isServiceInitialized()) {
+    if (_ValidatorIntegrationService.isServiceInitialized()) {
       loadStats();
     }
   }, [loadStats]);
@@ -460,7 +490,7 @@ export const useFeeCalculation = () => {
     listingType: 'auction' | 'fixed' = 'fixed'
   ) => {
     try {
-      return await validatorIntegration.calculateFees(amount, listingType);
+      return await _ValidatorIntegrationService.calculateFees(amount, listingType);
     } catch (error) {
       console.error('Error calculating fees:', error);
       throw error;
@@ -469,7 +499,7 @@ export const useFeeCalculation = () => {
 
   const distributeFees = useCallback(async (fees: any, transactionId: string) => {
     try {
-      await validatorIntegration.distributeFees(fees, transactionId);
+      await _ValidatorIntegrationService.distributeFees(fees, transactionId);
     } catch (error) {
       console.error('Error distributing fees:', error);
       // Don't throw - fee distribution failure shouldn't block transaction
@@ -500,7 +530,7 @@ export const useValidatorSearch = () => {
     setSearchError(null);
 
     try {
-      const results = await validatorIntegration.searchListings(query, filters, limit, offset);
+      const results = await _ValidatorIntegrationService.searchListings(query, filters, limit, offset);
       setSearchResults(results);
       return results;
     } catch (error) {

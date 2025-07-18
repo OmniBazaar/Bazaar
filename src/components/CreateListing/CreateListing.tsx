@@ -174,8 +174,7 @@ export const CreateListing: React.FC<CreateListingProps> = ({
 
       const tokenId = await createListing(metadata, images, listingNode);
       onSuccess(tokenId);
-    } catch (error) {
-      console.error('Error creating listing:', error);
+    } catch {
       toast.error('Failed to create listing');
     } finally {
       setIsSubmitting(false);

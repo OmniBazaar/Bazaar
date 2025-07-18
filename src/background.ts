@@ -1,7 +1,7 @@
 // Background service worker for OmniBazaar marketplace extension
 
 // Extension lifecycle
-chrome.runtime.onInstalled.addListener((details) => {
+chrome.runtime.onInstalled.addListener((_details) => {
   // Set up default settings
   void chrome.storage.local.set({
     marketplace: {
@@ -78,15 +78,14 @@ async function handleNotification(payload: { title: string; message: string; typ
       title: payload.title,
       message: payload.message,
     });
-  } catch (error) {
-    console.error('Error creating notification:', error);
+  } catch {
+    // Notification creation failed silently
   }
 }
 
 // Escrow system updates
 async function handleEscrowUpdate(payload: { escrowId: string; status: string; amount: string }) {
   // Handle escrow status updates
-  console.log('Escrow update:', payload);
   
   // Notify user about escrow status changes
   void handleNotification({
@@ -114,13 +113,11 @@ void chrome.alarms.create('sync-listings', { periodInMinutes: 15 });
 // Check escrow statuses periodically
 async function checkEscrowStatuses() {
   // Implementation will connect to blockchain to check escrow updates
-  console.log('Checking escrow statuses...');
 }
 
 // Sync listings with IPFS network
 async function syncListings() {
   // Implementation will sync listing data with IPFS
-  console.log('Syncing listings...');
 }
 
 // Context menu setup
@@ -135,7 +132,6 @@ chrome.contextMenus.onClicked.addListener((info, _tab) => {
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, _tab) => {
   if (changeInfo.status === 'complete' && _tab.url) {
     // Inject content script functionality if needed
-    console.log('Tab updated:', _tab.url);
   }
 });
 

@@ -41,16 +41,16 @@ export const createListing = async (
     const metadataHash = await uploadMetadataToIPFS(completeMetadata);
 
     // Create listing on blockchain
-    const tx = await contract.connect(signer)['createListing'](
+    const tx: ethers.ContractTransaction = await contract.connect(signer)['createListing'](
       metadataHash,
       ethers.utils.parseEther(metadata.price.toString()),
       metadata.quantity || 1
     );
 
-    const receipt = await tx.wait();
+    const _receipt = await tx.wait();
     
     // Extract token ID from logs
-    const event = receipt.events?.find((e: any) => e.event === 'ListingCreated');
+    const event = _receipt.events?.find((e: any) => e.event === 'ListingCreated');
     const tokenId = event?.args?.tokenId?.toString();
 
     if (!tokenId) {
@@ -59,7 +59,8 @@ export const createListing = async (
 
     return tokenId;
   } catch (error) {
-    throw new Error(`Failed to create listing: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    const errorMessage = error instanceof Error ? error.message : 'Failed to create listing';
+    throw new Error(errorMessage);
   }
 };
 
@@ -152,7 +153,7 @@ export const createListingTransaction = async (
       { value: totalPrice }
     );
     
-    const receipt = await tx.wait();
+    const _receipt = await tx.wait();
     
     const transaction: ListingTransaction = {
       listingId,

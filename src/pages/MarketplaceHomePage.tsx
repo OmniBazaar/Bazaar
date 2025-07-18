@@ -163,31 +163,25 @@ const FeatureDescription = styled.p`
 `;
 
 export function MarketplaceHomePage() {
-    const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-    const { listings } = useListings();
+    const [_selectedCategory, setSelectedCategory] = useState<string | null>(null);
+    const { listings: _listings } = useListings();
 
     const handleCategorySelect = (categoryId: string) => {
-        console.log('Selected category:', categoryId);
         // Here you would typically navigate to the category page
         // or update the view to show listings for that category
         setSelectedCategory(categoryId);
         
         // Example navigation logic (would use React Router in real app)
-        switch (categoryId) {
-            case 'create':
-                console.log('Navigate to create listing page');
-                break;
-            case 'my-listings':
-                console.log('Navigate to my listings page');
-                break;
-            case 'search':
-                console.log('Navigate to advanced search');
-                break;
-            case 'featured':
-                console.log('Navigate to featured listings');
-                break;
-            default:
-                console.log('Navigate to category listings:', categoryId);
+        if (categoryId === 'create') {
+            // Navigate to create listing page
+        } else if (categoryId === 'my-listings') {
+            // Navigate to my listings page
+        } else if (categoryId === 'search') {
+            // Navigate to search page
+        } else if (categoryId === 'featured') {
+            // Navigate to featured items page
+        } else {
+            // Navigate to category page
         }
     };
 

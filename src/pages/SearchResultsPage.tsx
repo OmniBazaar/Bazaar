@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import styled from 'styled-components';
 import { useListings } from '../hooks/useListings';
 import { SearchBar } from '../components/listings/SearchBar';
@@ -128,18 +129,13 @@ export function SearchResultsPage() {
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage] = useState(20);
 
-    useEffect(() => {
-        // Initial search
-        handleSearch('');
-    }, []);
-
     const handleSearch = (query: string) => {
         setSearchQuery(query);
         setCurrentPage(1); // Reset to first page on new search
         const searchParams = {
             query,
             ...filters,
-            sortBy: sortBy as any,
+            sortBy: sortBy as string,
             page: 1,
             limit: itemsPerPage
         };
@@ -148,53 +144,48 @@ export function SearchResultsPage() {
 
     const handleFiltersChange = (newFilters: Filters) => {
         setFilters(newFilters);
-        setCurrentPage(1); // Reset to first page on filter change
-        const searchParams = {
-            query: searchQuery,
-            ...newFilters,
-            sortBy: sortBy as any,
-            page: 1,
-            limit: itemsPerPage
-        };
-        searchListings(searchParams);
     };
 
     const handleClearFilters = () => {
-        setFilters({});
-        setCurrentPage(1); // Reset to first page
-        const searchParams = {
-            query: searchQuery,
-            sortBy: sortBy as any,
-            page: 1,
-            limit: itemsPerPage
-        };
-        searchListings(searchParams);
+        setFilters({
+            type: undefined,
+            category: undefined,
+            priceRange: undefined,
+            location: undefined,
+            sortBy: 'newest',
+            sortOrder: 'desc'
+        });
     };
 
     const handleSortChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const newSortBy = e.target.value;
-        setSortBy(newSortBy);
-        setCurrentPage(1); // Reset to first page on sort change
-        const searchParams = {
-            query: searchQuery,
-            ...filters,
-            sortBy: newSortBy as any,
-            page: 1,
-            limit: itemsPerPage
-        };
-        searchListings(searchParams);
+        const [sortBy, sortOrder] = e.target.value.split('-') as ['newest' | 'price' | 'rating' | 'popularity', 'asc' | 'desc'];
+        setFilters(prev => ({ ...prev, sortBy, sortOrder }));
     };
 
     const handlePageChange = (page: number) => {
         setCurrentPage(page);
-        const searchParams = {
-            query: searchQuery,
-            ...filters,
-            sortBy: sortBy as any,
-            page,
-            limit: itemsPerPage
-        };
-        searchListings(searchParams);
+    };
+
+    const handleLocationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const { name, value } = e.target;
+        setFilters(prev => ({
+            ...prev,
+            location: {
+                ...prev.location,
+                [name]: value
+            }
+        }));
+    };
+
+    const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const { name, value } = e.target;
+        setFilters(prev => ({
+            ...prev,
+            priceRange: {
+                ...prev.priceRange,
+                [name]: value ? Number(value) : undefined
+            }
+        }));
     };
 
     const renderResults = () => {

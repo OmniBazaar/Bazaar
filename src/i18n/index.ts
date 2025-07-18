@@ -27,8 +27,7 @@ export async function loadMessages(locale: SupportedLocale): Promise<Record<stri
   try {
     const messages = await import(`./messages/${locale}.json`);
     return messages.default;
-  } catch (error) {
-    console.warn(`Failed to load messages for locale ${locale}, falling back to English`);
+  } catch {
     const fallbackMessages = await import('./messages/en.json');
     return fallbackMessages.default;
   }
@@ -48,23 +47,22 @@ export function createIntlInstance(locale: SupportedLocale, messages: Record<str
 
 // Get user's preferred locale
 export function getUserLocale(): SupportedLocale {
-  // Try to get from browser extension storage first
-  // Then fallback to browser language
-  const browserLang = navigator.language.split('-')[0] as SupportedLocale;
-  
-  if (SUPPORTED_LOCALES.includes(browserLang)) {
-    return browserLang;
+  try {
+    const userLanguage = navigator.language.slice(0, 2);
+    return SUPPORTED_LOCALES.includes(userLanguage as SupportedLocale) 
+      ? userLanguage as SupportedLocale 
+      : 'en';
+  } catch {
+    return 'en';
   }
-  
-  return DEFAULT_LOCALE;
 }
 
 // Save user's locale preference
 export async function saveUserLocale(locale: SupportedLocale): Promise<void> {
   try {
     await chrome.storage.local.set({ locale });
-  } catch (error) {
-    console.error('Failed to save locale preference:', error);
+  } catch {
+    // Failed to save locale
   }
 }
 
@@ -72,14 +70,8 @@ export async function saveUserLocale(locale: SupportedLocale): Promise<void> {
 export async function loadUserLocale(): Promise<SupportedLocale> {
   try {
     const result = await chrome.storage.local.get(['locale']);
-    const savedLocale = result.locale as SupportedLocale;
-    
-    if (savedLocale && SUPPORTED_LOCALES.includes(savedLocale)) {
-      return savedLocale;
-    }
-  } catch (error) {
-    console.error('Failed to load locale preference:', error);
+    return result.locale ?? getUserLocale();
+  } catch {
+    return getUserLocale();
   }
-  
-  return getUserLocale();
 } 

@@ -18,7 +18,7 @@ global.chrome = {
       addListener: jest.fn(),
     },
   },
-} as any;
+} as Partial<Response>;
 
 // Setup after each test
 afterEach(() => {

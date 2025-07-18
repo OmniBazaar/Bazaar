@@ -69,8 +69,9 @@ export const useSecureSend = () => {
       }
 
       return event.args.escrowId;
-    } catch (err: any) {
-      setError(err.message ?? 'Failed to create escrow');
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to create escrow';
+      setError(errorMessage);
       throw err;
     } finally {
       setLoading(false);
@@ -92,8 +93,9 @@ export const useSecureSend = () => {
       const tx = await contract.vote(escrowId, isPositive);
       const signedTx = await signTransaction(tx);
       await signedTx.wait();
-    } catch (err: any) {
-      setError(err.message ?? 'Failed to vote');
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to vote';
+      setError(errorMessage);
       throw err;
     } finally {
       setLoading(false);
@@ -121,7 +123,7 @@ export const useSecureSend = () => {
         negativeVotes: details.negativeVotes.toNumber(),
       };
     } catch (err: any) {
-      setError(err.message || 'Failed to get escrow details');
+      setError(err.message ?? 'Failed to get escrow details');
       throw err;
     }
   };
@@ -144,8 +146,9 @@ export const useSecureSend = () => {
       );
       const signedTx = await signTransaction(tx);
       await signedTx.wait();
-    } catch (err: any) {
-      setError(err.message || 'Failed to extend expiration time');
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to extend expiration time';
+      setError(errorMessage);
       throw err;
     } finally {
       setLoading(false);
